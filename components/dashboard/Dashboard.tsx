@@ -142,7 +142,12 @@ export default function Dashboard({
       >
         <TabNav active={tab} onChange={setTab} />
         <div className="p-5">
-          {tab === 'overview' && <OverviewTab pnlIncome={pnlIncome} />}
+          {tab === 'overview' && (
+            <OverviewTab
+              pnlIncome={pnlIncome}
+              walletBalance={num(account?.totalWalletBalance || 0)}
+            />
+          )}
           {tab === 'positions' && (
             <PositionsTab positions={positions} openOrders={openOrders} />
           )}
