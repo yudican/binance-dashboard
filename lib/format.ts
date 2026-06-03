@@ -35,6 +35,19 @@ export const fmtDate = (ts: number) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+export const fmtMoney = (n: string | number | null | undefined, dec = 2) => {
+  const v = num(n)
+  const sign = v > 0 ? '+' : v < 0 ? '-' : ''
+  return (
+    sign +
+    '$' +
+    Math.abs(v).toLocaleString('en-US', {
+      minimumFractionDigits: dec,
+      maximumFractionDigits: dec,
+    })
+  )
+}
+
 export const fmtCompact = (n: number) => {
   if (!isFinite(n) || n === 0) return '0'
   const abs = Math.abs(n)

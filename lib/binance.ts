@@ -1,8 +1,14 @@
+export interface FetchOpts {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  signed?: boolean
+}
+
 export async function binanceFetch<T = any>(
   path: string,
   params: Record<string, string | number> = {},
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
+  opts: FetchOpts = {}
 ): Promise<T> {
   const stringParams: Record<string, string> = {}
   for (const [k, v] of Object.entries(params)) stringParams[k] = String(v)
@@ -10,7 +16,14 @@ export async function binanceFetch<T = any>(
   const res = await fetch('/api/binance', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, params: stringParams, apiKey, apiSecret }),
+    body: JSON.stringify({
+      path,
+      params: stringParams,
+      apiKey,
+      apiSecret,
+      method: opts.method || 'GET',
+      signed: opts.signed !== false,
+    }),
     cache: 'no-store',
   })
 

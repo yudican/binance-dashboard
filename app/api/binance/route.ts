@@ -14,43 +14,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { path, params = {} } = body || {}
+  const { path, params = {}, method = 'GET', signed = true } = body || {}
   const apiKey: string = body?.apiKey || process.env.BINANCE_API_KEY || ''
   const apiSecret: string = body?.apiSecret || process.env.BINANCE_API_SECRET || ''
 
   if (!path || typeof path !== 'string' || !path.startsWith('/fapi/')) {
     return NextResponse.json({ error: 'Invalid Binance path' }, { status: 400 })
   }
-  if (!apiKey || !apiSecret) {
-    return NextResponse.json({ error: 'Missing API credentials' }, { status: 401 })
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Missing API key' }, { status: 401 })
+  }
+  if (signed && !apiSecret) {
+    return NextResponse.json({ error: 'Missing API secret' }, { status: 401 })
   }
 
-  const timestamp = Date.now()
-  const recvWindow = 6000
+  const upperMethod = String(method).toUpperCase()
 
   const query = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null || v === '') continue
     query.append(k, String(v))
   }
-  query.append('timestamp', String(timestamp))
-  query.append('recvWindow', String(recvWindow))
 
-  const signature = crypto.createHmac('sha256', apiSecret).update(query.toString()).digest('hex')
-  query.append('signature', signature)
+  if (signed) {
+    query.append('timestamp', String(Date.now()))
+    query.append('recvWindow', '6000')
+    const signature = crypto.createHmac('sha256', apiSecret).update(query.toString()).digest('hex')
+    query.append('signature', signature)
+  }
 
-  const url = `${BASE}${path}?${query.toString()}`
+  const qs = query.toString()
+  const url = `${BASE}${path}${qs ? `?${qs}` : ''}`
 
   try {
     const res = await fetch(url, {
-      method: 'GET',
+      method: upperMethod,
       headers: { 'X-MBX-APIKEY': apiKey },
       cache: 'no-store',
     })
     const text = await res.text()
     let data: any
     try {
-      data = text ? JSON.parse(text) : null
+      data = text ? JSON.parse(text) : {}
     } catch {
       data = { raw: text }
     }

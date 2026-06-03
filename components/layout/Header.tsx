@@ -2,6 +2,8 @@
 
 interface Props {
   connected: boolean
+  /** websocket streaming active */
+  live?: boolean
   refreshing: boolean
   lastUpdated: Date | null
   onRefresh: () => void
@@ -18,7 +20,7 @@ function formatRelative(d: Date | null) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function Header({ connected, refreshing, lastUpdated, onRefresh, onLogout }: Props) {
+export default function Header({ connected, live, refreshing, lastUpdated, onRefresh, onLogout }: Props) {
   return (
     <header
       className="sticky top-0 z-40 border-b border-soft/40"
@@ -40,11 +42,15 @@ export default function Header({ connected, refreshing, lastUpdated, onRefresh, 
           <div className="flex items-center gap-2 text-xs">
             <span
               className={`inline-block w-2 h-2 rounded-full ${
-                connected ? 'bg-gain animate-pulseDot' : 'bg-muted'
+                live
+                  ? 'bg-gain animate-pulseDot'
+                  : connected
+                  ? 'bg-accent'
+                  : 'bg-muted'
               }`}
             />
-            <span className={connected ? 'text-gain' : 'text-muted2'}>
-              {connected ? 'live' : 'disconnected'}
+            <span className={live ? 'text-gain' : connected ? 'text-accent' : 'text-muted2'}>
+              {live ? 'live' : connected ? 'polling' : 'disconnected'}
             </span>
             {connected && lastUpdated && (
               <span className="hidden sm:inline text-muted ml-2">· updated {formatRelative(lastUpdated)}</span>

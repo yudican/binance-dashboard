@@ -27,6 +27,8 @@ interface Props {
   allIncome: IncomeRecord[]
   commissionRate: CommissionRate | null
   firstLoad: boolean
+  /** Live mark prices from websocket: symbol -> price */
+  marks?: Record<string, number>
 }
 
 const PERIOD_LABEL: Record<JournalPeriod, string> = {
@@ -45,9 +47,32 @@ export default function Dashboard({
   allIncome,
   commissionRate,
   firstLoad,
+  marks = {},
 }: Props) {
   const [tab, setTab] = useState<TabKey>('overview')
   const [journalPeriod, setJournalPeriod] = useState<JournalPeriod>('today')
+
+  // Overlay live mark prices onto positions and recompute uPnL in realtime.
+  const livePositions = useMemo(() => {
+    return positions.map((p) => {
+      const mark = marks[p.symbol]
+      if (!mark || !isFinite(mark)) return p
+      const entry = num(p.entryPrice)
+      const amt = num(p.positionAmt)
+      const liveUpnl = (mark - entry) * amt
+      return {
+        ...p,
+        markPrice: String(mark),
+        unRealizedProfit: String(liveUpnl),
+      }
+    })
+  }, [positions, marks])
+
+  // Live total unrealized PnL across positions (falls back to account value).
+  const liveUnrealized = useMemo(() => {
+    if (!Object.keys(marks).length) return num(account?.totalUnrealizedProfit || 0)
+    return livePositions.reduce((a, p) => a + num(p.unRealizedProfit), 0)
+  }, [livePositions, marks, account])
 
   const periodPnl = useMemo(() => {
     const cutoff =
@@ -86,11 +111,11 @@ export default function Dashboard({
         />
         <StatCard
           label="Unrealized PnL"
-          value={fmtSign(account?.totalUnrealizedProfit || 0)}
+          value={fmtSign(liveUnrealized)}
           sub="open positions"
           color="green"
           valueColor="auto"
-          rawValue={num(account?.totalUnrealizedProfit || 0)}
+          rawValue={liveUnrealized}
         />
         <StatCard
           label="Available Margin"
@@ -108,7 +133,7 @@ export default function Dashboard({
         />
         <StatCard
           label="Total Equity"
-          value={fmt(account?.totalMarginBalance || 0)}
+          value={fmt(num(account?.totalWalletBalance || 0) + liveUnrealized)}
           sub="wallet + uPnL"
           color="yellow"
         />
@@ -149,7 +174,7 @@ export default function Dashboard({
             />
           )}
           {tab === 'positions' && (
-            <PositionsTab positions={positions} openOrders={openOrders} />
+            <PositionsTab positions={livePositions} openOrders={openOrders} />
           )}
           {tab === 'income' && (
             <IncomeTab allIncome={allIncome} fundingIncome={fundingIncome} />

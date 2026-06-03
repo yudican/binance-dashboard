@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Header from '@/components/layout/Header'
 import LoginModal from '@/components/auth/LoginModal'
 import Dashboard from '@/components/dashboard/Dashboard'
 import { useSession } from '@/hooks/useSession'
 import { useBinance } from '@/hooks/useBinance'
+import { useBinanceStream } from '@/hooks/useBinanceStream'
 
 interface Toast {
   id: number
@@ -79,6 +80,15 @@ export default function Page() {
     if (!loading && account) firstLoadDone.current = true
   }, [loading, account])
 
+  // ---- Realtime websocket layer ----
+  const symbols = useMemo(() => positions.map((p) => p.symbol), [positions])
+  const { marks, connected: wsConnected } = useBinanceStream({
+    apiKey: creds?.apiKey || '',
+    apiSecret: creds?.apiSecret || '',
+    symbols,
+    onUserData: refresh,
+  })
+
   const handleLogin = async (apiKey: string, apiSecret: string) => {
     setLoginError(null)
     set(apiKey, apiSecret)
@@ -100,6 +110,7 @@ export default function Page() {
     <>
       <Header
         connected={connected}
+        live={connected && wsConnected}
         refreshing={refreshing}
         lastUpdated={lastUpdated}
         onRefresh={refresh}
@@ -120,6 +131,7 @@ export default function Page() {
           allIncome={allIncome}
           commissionRate={commissionRate}
           firstLoad={!firstLoadDone.current}
+          marks={marks}
         />
       ) : (
         <DisconnectedState />
