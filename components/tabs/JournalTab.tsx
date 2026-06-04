@@ -1,7 +1,11 @@
 'use client'
 
 import { useMemo } from 'react'
-import { daysAgo, fmtSign, fmtTime, num, startOfDay } from '@/lib/format'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { daysAgo, fmtTime, num, startOfDay } from '@/lib/format'
+import { money } from '@/lib/utils'
 import type { IncomeRecord } from '@/types/binance'
 
 export type JournalPeriod = 'today' | '7d' | '30d'
@@ -20,8 +24,7 @@ const OPTIONS: { key: JournalPeriod; label: string }[] = [
 
 export default function JournalTab({ pnlIncome, period, setPeriod }: Props) {
   const rows = useMemo(() => {
-    const cutoff =
-      period === 'today' ? startOfDay(Date.now()) : period === '7d' ? daysAgo(7) : daysAgo(30)
+    const cutoff = period === 'today' ? startOfDay(Date.now()) : period === '7d' ? daysAgo(7) : daysAgo(30)
     return pnlIncome
       .filter((r) => r.time >= cutoff && r.incomeType === 'REALIZED_PNL')
       .sort((a, b) => b.time - a.time)
@@ -32,98 +35,81 @@ export default function JournalTab({ pnlIncome, period, setPeriod }: Props) {
   const losses = rows.filter((r) => num(r.income) < 0).length
 
   return (
-    <div className="space-y-5">
-      <div className="card-base p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex gap-1.5">
-            {OPTIONS.map((o) => (
-              <button
-                key={o.key}
-                onClick={() => setPeriod(o.key)}
-                className={`px-3 py-1.5 rounded-lg text-[11.5px] tracking-wide transition border ${
-                  period === o.key
-                    ? 'bg-accent/15 border-accent/50 text-accent'
-                    : 'bg-bg3 border-soft/40 text-muted2 hover:text-text'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 text-[12px]">
-            <Stat label="Trades" value={String(rows.length)} />
-            <Stat label="Wins" value={String(wins)} cls="text-gain" />
-            <Stat label="Losses" value={String(losses)} cls="text-loss" />
-            <Stat
-              label="Net"
-              value={fmtSign(total)}
-              cls={total >= 0 ? 'text-gain' : 'text-loss'}
-            />
-          </div>
+    <Card>
+      <CardHeader className="flex-row items-center justify-between">
+        <div>
+          <CardTitle>Trade Journal</CardTitle>
+          <CardDescription>{rows.length} realized trades</CardDescription>
+        </div>
+        <div className="flex gap-1.5">
+          {OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => setPeriod(o.key)}
+              className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                period === o.key
+                  ? 'border-primary/50 bg-primary/15 text-primary'
+                  : 'border-border bg-background/40 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Trades" value={String(rows.length)} />
+          <Stat label="Wins" value={String(wins)} cls="text-emerald-400" />
+          <Stat label="Losses" value={String(losses)} cls="text-rose-400" />
+          <Stat label="Net" value={money(total)} cls={total >= 0 ? 'text-emerald-400' : 'text-rose-400'} />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="bg-bg3 text-muted2 text-[10.5px] uppercase tracking-wider">
-                <th className="px-3 py-2.5 text-left font-medium">Time</th>
-                <th className="px-3 py-2.5 text-left font-medium">Symbol</th>
-                <th className="px-3 py-2.5 text-right font-medium">Realized PnL</th>
-                <th className="px-3 py-2.5 text-left font-medium">Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-muted">
-                    No realized trades in this period.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((r, i) => {
-                  const amt = num(r.income)
-                  return (
-                    <tr
-                      key={(r.tradeId || r.tranId || '') + '-' + i}
-                      className="border-t border-soft/30 hover:bg-card2 transition-colors"
-                    >
-                      <td className="px-3 py-2.5 text-muted2 tnum whitespace-nowrap">
-                        {fmtTime(r.time)}
-                      </td>
-                      <td className="px-3 py-2.5 font-medium">{r.symbol || '—'}</td>
-                      <td
-                        className={`px-3 py-2.5 text-right tnum font-semibold ${
-                          amt >= 0 ? 'text-gain' : 'text-loss'
-                        }`}
-                      >
-                        {fmtSign(amt, 4)}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted2">REALIZED_PNL</td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Time</TableHead>
+              <TableHead>Symbol</TableHead>
+              <TableHead className="text-right">Realized PnL</TableHead>
+              <TableHead>Type</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length ? (
+              rows.map((r, i) => {
+                const amt = num(r.income)
+                return (
+                  <TableRow key={(r.tradeId || r.tranId || '') + '-' + i}>
+                    <TableCell className="whitespace-nowrap tnum text-muted-foreground">{fmtTime(r.time)}</TableCell>
+                    <TableCell className="font-semibold">{r.symbol || '—'}</TableCell>
+                    <TableCell className={`text-right tnum font-semibold ${amt >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {money(amt)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="border-border bg-muted/40 text-muted-foreground">REALIZED PNL</Badge>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                  No realized trades in this period
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }
 
-function Stat({
-  label,
-  value,
-  cls = 'text-text',
-}: {
-  label: string
-  value: string
-  cls?: string
-}) {
+function Stat({ label, value, cls = 'text-foreground' }: { label: string; value: string; cls?: string }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-muted2">{label}</span>
-      <span className={`tnum font-semibold ${cls}`}>{value}</span>
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`mt-1 text-lg font-bold tnum ${cls}`}>{value}</div>
     </div>
   )
 }

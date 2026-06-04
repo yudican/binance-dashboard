@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Gem } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import LoginModal from '@/components/auth/LoginModal'
 import Dashboard from '@/components/dashboard/Dashboard'
@@ -108,34 +109,36 @@ export default function Page() {
 
   return (
     <>
-      <Header
-        connected={connected}
-        live={connected && wsConnected}
-        refreshing={refreshing}
-        lastUpdated={lastUpdated}
-        onRefresh={refresh}
-        onLogout={handleLogout}
-      />
-
-      {/* Full-page spinner only on the very first load while authed */}
-      {creds && loading && !firstLoadDone.current ? (
-        <FullPageLoader />
-      ) : creds ? (
-        <Dashboard
-          account={account}
-          positions={positions}
-          openOrders={openOrders}
-          pnlIncome={pnlIncome}
-          fundingIncome={fundingIncome}
-          commissionIncome={commissionIncome}
-          allIncome={allIncome}
-          commissionRate={commissionRate}
-          firstLoad={!firstLoadDone.current}
-          marks={marks}
+      <main className="relative z-10 mx-auto min-h-screen max-w-[1400px] space-y-4 p-3 sm:p-4 lg:p-6">
+        <Header
+          connected={connected}
+          live={connected && wsConnected}
+          refreshing={refreshing}
+          lastUpdated={lastUpdated}
+          onRefresh={refresh}
+          onLogout={handleLogout}
         />
-      ) : (
-        <DisconnectedState />
-      )}
+
+        {/* Full-page spinner only on the very first load while authed */}
+        {creds && loading && !firstLoadDone.current ? (
+          <FullPageLoader />
+        ) : creds ? (
+          <Dashboard
+            account={account}
+            positions={positions}
+            openOrders={openOrders}
+            pnlIncome={pnlIncome}
+            fundingIncome={fundingIncome}
+            commissionIncome={commissionIncome}
+            allIncome={allIncome}
+            commissionRate={commissionRate}
+            firstLoad={!firstLoadDone.current}
+            marks={marks}
+          />
+        ) : (
+          <DisconnectedState />
+        )}
+      </main>
 
       <LoginModal open={modalOpen} onSubmit={handleLogin} errorMessage={loginError} />
 
@@ -152,12 +155,12 @@ export default function Page() {
 
 function FullPageLoader() {
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
       <div
-        className="w-9 h-9 border-2 border-accent border-t-transparent rounded-full animate-spin"
+        className="h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent"
         aria-label="Loading"
       />
-      <div className="text-xs uppercase tracking-[0.18em] text-muted2">
+      <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
         Fetching futures data…
       </div>
     </div>
@@ -166,13 +169,15 @@ function FullPageLoader() {
 
 function DisconnectedState() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="text-center">
-        <div className="diamond-logo mx-auto mb-4" />
-        <div className="text-[15px] tracking-[0.12em] font-semibold">
-          FUTURES<span className="text-accent">DESK</span>
+        <div className="orange-glow mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl border border-primary/70 bg-primary/10 text-primary">
+          <Gem className="h-6 w-6" />
         </div>
-        <div className="text-xs text-muted2 mt-1">Connect to begin.</div>
+        <div className="text-[15px] font-semibold tracking-[0.12em]">
+          FUTURES<span className="text-primary">DESK</span>
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">Connect to begin.</div>
       </div>
     </div>
   )

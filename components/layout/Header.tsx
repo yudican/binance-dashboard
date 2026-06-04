@@ -1,5 +1,9 @@
 'use client'
 
+import { Gem, LogOut, RefreshCw } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+
 interface Props {
   connected: boolean
   /** websocket streaming active */
@@ -11,7 +15,7 @@ interface Props {
 }
 
 function formatRelative(d: Date | null) {
-  if (!d) return ''
+  if (!d) return '—'
   const secs = Math.floor((Date.now() - d.getTime()) / 1000)
   if (secs < 5) return 'just now'
   if (secs < 60) return `${secs}s ago`
@@ -22,75 +26,53 @@ function formatRelative(d: Date | null) {
 
 export default function Header({ connected, live, refreshing, lastUpdated, onRefresh, onLogout }: Props) {
   return (
-    <header
-      className="sticky top-0 z-40 border-b border-soft/40"
-      style={{
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        background: 'rgba(10, 12, 16, 0.72)',
-      }}
-    >
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 h-[60px] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="diamond-logo" />
-          <div className="text-[15px] tracking-[0.12em] font-semibold">
-            FUTURES<span className="text-accent">DESK</span>
-          </div>
+    <header className="flex flex-col gap-3 rounded-2xl border bg-black/40 p-3 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="orange-glow grid h-11 w-11 place-items-center rounded-xl border border-primary/70 bg-primary/10 text-primary">
+          <Gem className="h-6 w-6" />
         </div>
-
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 text-xs">
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${
-                live
-                  ? 'bg-gain animate-pulseDot'
-                  : connected
-                  ? 'bg-accent'
-                  : 'bg-muted'
-              }`}
-            />
-            <span className={live ? 'text-gain' : connected ? 'text-accent' : 'text-muted2'}>
-              {live ? 'live' : connected ? 'polling' : 'disconnected'}
-            </span>
-            {connected && lastUpdated && (
-              <span className="hidden sm:inline text-muted ml-2">· updated {formatRelative(lastUpdated)}</span>
-            )}
-          </div>
-
-          {connected && (
-            <>
-              <button
-                onClick={onRefresh}
-                disabled={refreshing}
-                title="Refresh now"
-                className="flex items-center gap-1.5 rounded-lg border border-strong/30 bg-bg3 hover:bg-card2 px-3 py-1.5 text-xs transition disabled:opacity-60"
-              >
-                <svg
-                  className={refreshing ? 'animate-spin' : ''}
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 12a9 9 0 1 1-3-6.7" />
-                  <path d="M21 3v6h-6" />
-                </svg>
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-              <button
-                onClick={onLogout}
-                title="Logout"
-                className="rounded-lg border border-strong/30 bg-bg3 hover:bg-card2 px-3 py-1.5 text-xs transition"
-              >
-                Logout
-              </button>
-            </>
-          )}
+        <div>
+          <h1 className="text-base font-bold tracking-wide sm:text-lg">
+            FUTURES<span className="text-primary">DESK</span>
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {connected ? `Last sync ${formatRelative(lastUpdated)}` : 'Binance USDT-M Futures'}
+          </p>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <Badge
+          className={`h-10 gap-2 px-3 ${
+            live
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+              : connected
+              ? 'border-primary/30 bg-primary/10 text-primary'
+              : 'border-border bg-muted/40 text-muted-foreground'
+          }`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${
+              live
+                ? 'bg-emerald-400 shadow-[0_0_16px_#34d399] animate-pulseDot'
+                : connected
+                ? 'bg-primary'
+                : 'bg-muted-foreground'
+            }`}
+          />
+          {live ? 'Live · WebSocket' : connected ? 'Polling' : 'Disconnected'}
+        </Badge>
+
+        {connected && (
+          <>
+            <Button variant="outline" size="icon" onClick={onRefresh} disabled={refreshing} title="Refresh now">
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="outline" size="icon" onClick={onLogout} title="Logout">
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </>
+        )}
       </div>
     </header>
   )

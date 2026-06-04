@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import { Gem } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   open: boolean
@@ -36,29 +38,24 @@ export default function LoginModal({ open, onSubmit, errorMessage }: Props) {
   const err = localErr || errorMessage
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{
-        background: 'rgba(5, 7, 12, 0.78)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-      }}
-    >
-      <div className="card-base w-full max-w-md p-8 animate-fadeUp">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="diamond-logo" />
-          <div className="text-lg tracking-wide font-semibold">
-            FUTURES<span className="text-accent">DESK</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-xl">
+      <div className="terminal-panel w-full max-w-md rounded-2xl p-8">
+        <div className="mb-1 flex items-center gap-3">
+          <div className="orange-glow flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
+            <Gem className="h-5 w-5 text-primary" />
+          </div>
+          <div className="text-lg font-semibold tracking-wide">
+            FUTURES<span className="text-primary">DESK</span>
           </div>
         </div>
-        <p className="text-sm text-muted2 mb-6">
+        <p className="mb-6 text-sm text-muted-foreground">
           Connect with a read-only Binance USDT-M Futures key. Your secret is signed
           server-side and never leaves your tab.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs uppercase tracking-wider text-muted2">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">
               API Key
             </label>
             <input
@@ -68,11 +65,11 @@ export default function LoginModal({ open, onSubmit, errorMessage }: Props) {
               autoComplete="off"
               spellCheck={false}
               placeholder="•••••••••••••••••••••••••••••••"
-              className="mt-1.5 w-full rounded-lg bg-bg3 border border-strong/30 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/40 transition"
+              className="mt-1.5 w-full rounded-lg border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none transition focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-wider text-muted2">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">
               API Secret
             </label>
             <input
@@ -82,29 +79,25 @@ export default function LoginModal({ open, onSubmit, errorMessage }: Props) {
               autoComplete="off"
               spellCheck={false}
               placeholder="•••••••••••••••••••••••••••••••"
-              className="mt-1.5 w-full rounded-lg bg-bg3 border border-strong/30 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/40 transition"
+              className="mt-1.5 w-full rounded-lg border border-border bg-background/60 px-3.5 py-2.5 font-mono text-sm outline-none transition focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
             />
           </div>
 
           {err && (
-            <div className="text-xs text-loss bg-loss/10 border border-loss/30 rounded-lg px-3 py-2">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {err}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-accent text-black font-semibold py-2.5 text-sm tracking-wide hover:brightness-110 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
-          >
+          <Button type="submit" disabled={busy} className="w-full">
             {busy ? 'Connecting…' : 'Connect'}
-          </button>
+          </Button>
         </form>
 
-        <div className="mt-5 text-[11px] leading-relaxed text-muted">
-          Stored in <span className="font-mono text-muted2">sessionStorage</span> — cleared
-          when this tab closes. Use a key with <span className="text-muted2">Read-Only</span> and{' '}
-          <span className="text-muted2">Enable Futures</span> permissions.
+        <div className="mt-5 text-[11px] leading-relaxed text-muted-foreground">
+          Stored in <span className="font-mono">sessionStorage</span> — cleared
+          when this tab closes. Use a key with <span className="text-foreground">Read-Only</span> and{' '}
+          <span className="text-foreground">Enable Futures</span> permissions.
         </div>
       </div>
     </div>

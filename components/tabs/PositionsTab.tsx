@@ -1,6 +1,10 @@
 'use client'
 
-import { fmt, fmtSign, fmtTime, num } from '@/lib/format'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { fmt, fmtTime, num } from '@/lib/format'
+import { money } from '@/lib/utils'
 import type { Order, Position } from '@/types/binance'
 
 interface Props {
@@ -32,203 +36,136 @@ function marginValue(p: Position) {
   return (entry * size) / lev
 }
 
+const sideBadge = (s: 'LONG' | 'SHORT' | 'BUY' | 'SELL') =>
+  s === 'LONG' || s === 'BUY'
+    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+
 export default function PositionsTab({ positions, openOrders }: Props) {
   return (
-    <div className="space-y-5">
-      <Section
-        title="Open Positions"
-        count={positions.length}
-        empty="No open positions."
-        show={positions.length > 0}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="bg-bg3 text-muted2 text-[10.5px] uppercase tracking-wider">
-                <Th left>Symbol</Th>
-                <Th>Side</Th>
-                <Th right>Size</Th>
-                <Th right>Entry</Th>
-                <Th right>Mark</Th>
-                <Th right>Liq.</Th>
-                <Th right>Lev</Th>
-                <Th right>Margin</Th>
-                <Th right>uPnL</Th>
-                <Th right>ROE%</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((p) => {
-                const side = deriveSide(p)
-                const upnl = num(p.unRealizedProfit)
-                const roe = roePct(p)
-                return (
-                  <tr
-                    key={p.symbol + p.positionSide}
-                    className="border-t border-soft/30 hover:bg-card2 transition-colors"
-                  >
-                    <Td left className="font-medium">{p.symbol}</Td>
-                    <Td>
-                      <Badge tone={side === 'LONG' ? 'green' : 'red'}>{side}</Badge>
-                    </Td>
-                    <Td right className="tnum">{fmt(Math.abs(num(p.positionAmt)), 4)}</Td>
-                    <Td right className="tnum">{fmt(p.entryPrice, 4)}</Td>
-                    <Td right className="tnum">{fmt(p.markPrice, 4)}</Td>
-                    <Td right className="tnum text-loss">
-                      {num(p.liquidationPrice) ? fmt(p.liquidationPrice, 4) : '—'}
-                    </Td>
-                    <Td right className="tnum">{p.leverage}x</Td>
-                    <Td right className="tnum">{fmt(marginValue(p), 2)}</Td>
-                    <Td right className={`tnum ${upnl >= 0 ? 'text-gain' : 'text-loss'}`}>
-                      {fmtSign(upnl)}
-                    </Td>
-                    <Td right className={`tnum ${roe >= 0 ? 'text-gain' : 'text-loss'}`}>
-                      {(roe >= 0 ? '+' : '') + roe.toFixed(2)}%
-                    </Td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+    <div className="grid gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Open Positions</CardTitle>
+          <CardDescription>{positions.length} rows</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Side</TableHead>
+                <TableHead className="text-right">Size</TableHead>
+                <TableHead className="text-right">Entry</TableHead>
+                <TableHead className="text-right">Mark</TableHead>
+                <TableHead className="text-right">Liq.</TableHead>
+                <TableHead className="text-right">Lev</TableHead>
+                <TableHead className="text-right">Margin</TableHead>
+                <TableHead className="text-right">uPnL</TableHead>
+                <TableHead className="text-right">ROE%</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {positions.length ? (
+                positions.map((p) => {
+                  const side = deriveSide(p)
+                  const upnl = num(p.unRealizedProfit)
+                  const roe = roePct(p)
+                  return (
+                    <TableRow key={p.symbol + p.positionSide}>
+                      <TableCell className="font-semibold">{p.symbol}</TableCell>
+                      <TableCell>
+                        <Badge className={sideBadge(side)}>{side}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right tnum">{fmt(Math.abs(num(p.positionAmt)), 4)}</TableCell>
+                      <TableCell className="text-right tnum">{fmt(p.entryPrice, 4)}</TableCell>
+                      <TableCell className="text-right tnum">{fmt(p.markPrice, 4)}</TableCell>
+                      <TableCell className="text-right tnum text-rose-400">
+                        {num(p.liquidationPrice) ? fmt(p.liquidationPrice, 4) : '—'}
+                      </TableCell>
+                      <TableCell className="text-right tnum">{p.leverage}x</TableCell>
+                      <TableCell className="text-right tnum">{fmt(marginValue(p), 2)}</TableCell>
+                      <TableCell className={`text-right tnum ${upnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {money(upnl)}
+                      </TableCell>
+                      <TableCell className={`text-right tnum ${roe >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {(roe >= 0 ? '+' : '') + roe.toFixed(2)}%
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                    No open positions
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <Section
-        title="Open Orders"
-        count={openOrders.length}
-        empty="No open orders."
-        show={openOrders.length > 0}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="bg-bg3 text-muted2 text-[10.5px] uppercase tracking-wider">
-                <Th left>Time</Th>
-                <Th left>Symbol</Th>
-                <Th>Side</Th>
-                <Th left>Type</Th>
-                <Th right>Qty</Th>
-                <Th right>Price</Th>
-                <Th right>Stop</Th>
-                <Th right>Fill</Th>
-                <Th left>Status</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {openOrders.map((o) => {
-                const qty = num(o.origQty)
-                const filled = num(o.executedQty)
-                const pct = qty ? (filled / qty) * 100 : 0
-                const isMarket = o.type === 'MARKET' || num(o.price) === 0
-                return (
-                  <tr
-                    key={o.orderId}
-                    className="border-t border-soft/30 hover:bg-card2 transition-colors"
-                  >
-                    <Td left className="tnum text-muted2">{fmtTime(o.time)}</Td>
-                    <Td left className="font-medium">{o.symbol}</Td>
-                    <Td>
-                      <Badge tone={o.side === 'BUY' ? 'green' : 'red'}>{o.side}</Badge>
-                    </Td>
-                    <Td left className="text-muted2">{o.type}</Td>
-                    <Td right className="tnum">{fmt(qty, 4)}</Td>
-                    <Td right className="tnum">
-                      {isMarket ? <span className="text-muted">Market</span> : fmt(o.price, 4)}
-                    </Td>
-                    <Td right className="tnum">
-                      {num(o.stopPrice) ? fmt(o.stopPrice, 4) : <span className="text-muted">—</span>}
-                    </Td>
-                    <Td right className="tnum">{pct.toFixed(0)}%</Td>
-                    <Td left>
-                      <span className="inline-flex items-center rounded-md bg-bg3 border border-soft/40 px-1.5 py-0.5 text-[10.5px] text-muted2">
-                        {o.status}
-                      </span>
-                    </Td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Open Orders</CardTitle>
+          <CardDescription>{openOrders.length} rows</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Side</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Stop</TableHead>
+                <TableHead className="text-right">Fill</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {openOrders.length ? (
+                openOrders.map((o) => {
+                  const qty = num(o.origQty)
+                  const filled = num(o.executedQty)
+                  const pct = qty ? (filled / qty) * 100 : 0
+                  const isMarket = o.type === 'MARKET' || num(o.price) === 0
+                  return (
+                    <TableRow key={o.orderId}>
+                      <TableCell className="tnum text-muted-foreground">{fmtTime(o.time)}</TableCell>
+                      <TableCell className="font-semibold">{o.symbol}</TableCell>
+                      <TableCell>
+                        <Badge className={sideBadge(o.side)}>{o.side}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{o.type}</TableCell>
+                      <TableCell className="text-right tnum">{fmt(qty, 4)}</TableCell>
+                      <TableCell className="text-right tnum">
+                        {isMarket ? <span className="text-muted-foreground">Market</span> : fmt(o.price, 4)}
+                      </TableCell>
+                      <TableCell className="text-right tnum">
+                        {num(o.stopPrice) ? fmt(o.stopPrice, 4) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right tnum">{pct.toFixed(0)}%</TableCell>
+                      <TableCell>
+                        <Badge className="border-border bg-muted/40 text-muted-foreground">{o.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                    No open orders
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
-  )
-}
-
-function Section({
-  title,
-  count,
-  children,
-  show,
-  empty,
-}: {
-  title: string
-  count: number
-  children: React.ReactNode
-  show: boolean
-  empty: string
-}) {
-  return (
-    <div className="card-base p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-muted2">{title}</div>
-        <div className="text-[11px] text-muted tnum">{count} total</div>
-      </div>
-      {show ? children : <div className="text-sm text-muted py-6 text-center">{empty}</div>}
-    </div>
-  )
-}
-
-function Th({
-  children,
-  left,
-  right,
-}: {
-  children: React.ReactNode
-  left?: boolean
-  right?: boolean
-}) {
-  return (
-    <th
-      className={`px-3 py-2.5 font-medium ${
-        right ? 'text-right' : left ? 'text-left' : 'text-center'
-      }`}
-    >
-      {children}
-    </th>
-  )
-}
-
-function Td({
-  children,
-  left,
-  right,
-  className = '',
-}: {
-  children: React.ReactNode
-  left?: boolean
-  right?: boolean
-  className?: string
-}) {
-  return (
-    <td
-      className={`px-3 py-2.5 ${
-        right ? 'text-right' : left ? 'text-left' : 'text-center'
-      } ${className}`}
-    >
-      {children}
-    </td>
-  )
-}
-
-function Badge({ tone, children }: { tone: 'green' | 'red'; children: React.ReactNode }) {
-  const cls =
-    tone === 'green'
-      ? 'bg-gain/15 text-gain border-gain/30'
-      : 'bg-loss/15 text-loss border-loss/30'
-  return (
-    <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10.5px] font-semibold ${cls}`}>
-      {children}
-    </span>
   )
 }

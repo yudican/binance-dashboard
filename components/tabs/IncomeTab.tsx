@@ -1,6 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import FundingLineChart from '@/components/charts/FundingLineChart'
 import IncomeDonutChart from '@/components/charts/IncomeDonutChart'
 import { fmtSign, fmtTime, num } from '@/lib/format'
@@ -11,6 +14,7 @@ type Filter = 'ALL' | 'REALIZED_PNL' | 'FUNDING_FEE' | 'COMMISSION' | 'TRANSFER'
 interface Props {
   allIncome: IncomeRecord[]
   fundingIncome: IncomeRecord[]
+  commissionIncome?: IncomeRecord[]
 }
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -22,13 +26,13 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 const TYPE_STYLE: Record<string, string> = {
-  REALIZED_PNL: 'bg-gain/15 text-gain border-gain/30',
-  FUNDING_FEE: 'bg-warn/15 text-warn border-warn/30',
-  COMMISSION: 'bg-loss/15 text-loss border-loss/30',
-  TRANSFER: 'bg-info/15 text-info border-info/30',
+  REALIZED_PNL: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  FUNDING_FEE: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  COMMISSION: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  TRANSFER: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
 }
 
-export default function IncomeTab({ allIncome, fundingIncome }: Props) {
+export default function IncomeTab({ allIncome, fundingIncome, commissionIncome = [] }: Props) {
   const [filter, setFilter] = useState<Filter>('ALL')
 
   const filtered = useMemo(() => {
@@ -37,88 +41,76 @@ export default function IncomeTab({ allIncome, fundingIncome }: Props) {
   }, [allIncome, filter])
 
   return (
-    <div className="space-y-5">
-      <div className="card-base p-5">
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-[11.5px] tracking-wide transition border ${
-                filter === f.key
-                  ? 'bg-accent/15 border-accent/50 text-accent'
-                  : 'bg-bg3 border-soft/40 text-muted2 hover:text-text'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+    <div className="grid gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Income History</CardTitle>
+          <CardDescription>{filtered.length} rows</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                  filter === f.key
+                    ? 'border-primary/50 bg-primary/15 text-primary'
+                    : 'border-border bg-background/40 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="bg-bg3 text-muted2 text-[10.5px] uppercase tracking-wider">
-                <th className="px-3 py-2.5 text-left font-medium">Time</th>
-                <th className="px-3 py-2.5 text-left font-medium">Type</th>
-                <th className="px-3 py-2.5 text-left font-medium">Symbol</th>
-                <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                <th className="px-3 py-2.5 text-left font-medium">Asset</th>
-                <th className="px-3 py-2.5 text-left font-medium">Info</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted">
-                    No records.
-                  </td>
-                </tr>
-              ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Symbol</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Asset</TableHead>
+                <TableHead>Info</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length ? (
                 filtered.map((r, i) => {
                   const amt = num(r.income)
-                  const tone =
-                    TYPE_STYLE[r.incomeType] ||
-                    'bg-bg3 text-muted2 border-soft/40'
                   return (
-                    <tr
-                      key={r.tranId + '-' + i}
-                      className="border-t border-soft/30 hover:bg-card2 transition-colors"
-                    >
-                      <td className="px-3 py-2.5 text-muted2 tnum whitespace-nowrap">
-                        {fmtTime(r.time)}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10.5px] font-semibold ${tone}`}
-                        >
+                    <TableRow key={r.tranId + '-' + i}>
+                      <TableCell className="whitespace-nowrap tnum text-muted-foreground">{fmtTime(r.time)}</TableCell>
+                      <TableCell>
+                        <Badge className={TYPE_STYLE[r.incomeType] || 'border-border bg-muted/40 text-muted-foreground'}>
                           {r.incomeType.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 font-medium">{r.symbol || '—'}</td>
-                      <td
-                        className={`px-3 py-2.5 text-right tnum font-semibold ${
-                          amt >= 0 ? 'text-gain' : 'text-loss'
-                        }`}
-                      >
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold">{r.symbol || '—'}</TableCell>
+                      <TableCell className={`text-right tnum font-semibold ${amt >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {fmtSign(amt, 6)}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted2">{r.asset}</td>
-                      <td className="px-3 py-2.5 text-muted truncate max-w-[260px]">
-                        {r.info || '—'}
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{r.asset}</TableCell>
+                      <TableCell className="max-w-[260px] truncate text-muted-foreground">{r.info || '—'}</TableCell>
+                    </TableRow>
                   )
                 })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                    No records
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <FundingLineChart records={fundingIncome} />
-        <IncomeDonutChart records={allIncome} />
+      <div className="grid gap-4 xl:grid-cols-12">
+        <FundingLineChart records={fundingIncome} className="xl:col-span-7" />
+        <IncomeDonutChart records={allIncome} className="xl:col-span-5" />
       </div>
     </div>
   )

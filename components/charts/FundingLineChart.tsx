@@ -10,14 +10,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { fmtSign, num, daysAgo, fmtDate } from '@/lib/format'
 import type { IncomeRecord } from '@/types/binance'
 
 interface Props {
   records: IncomeRecord[]
+  className?: string
 }
 
-export default function FundingLineChart({ records }: Props) {
+export default function FundingLineChart({ records, className }: Props) {
   const { data, total } = useMemo(() => {
     const cutoff = daysAgo(30)
     const filtered = (records || [])
@@ -28,12 +30,11 @@ export default function FundingLineChart({ records }: Props) {
     for (const r of filtered) {
       const d = new Date(r.time)
       d.setHours(0, 0, 0, 0)
-      const k = String(d.getTime())
-      byDay.set(k, (byDay.get(k) || 0) + num(r.income))
+      byDay.set(String(d.getTime()), (byDay.get(String(d.getTime())) || 0) + num(r.income))
     }
 
     const days = 30
-    const out: { t: number; cum: number; day: number; label: string }[] = []
+    const out: { t: number; cum: number; label: string }[] = []
     let cum = 0
     const start = new Date()
     start.setHours(0, 0, 0, 0)
@@ -42,71 +43,42 @@ export default function FundingLineChart({ records }: Props) {
       const d = new Date(start)
       d.setDate(start.getDate() + i)
       const t = d.getTime()
-      const day = byDay.get(String(t)) || 0
-      cum += day
-      out.push({ t, cum, day, label: fmtDate(t) })
+      cum += byDay.get(String(t)) || 0
+      out.push({ t, cum, label: fmtDate(t) })
     }
     return { data: out, total: cum }
   }, [records])
 
   return (
-    <div className="card-base p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.14em] text-muted2">
-            Cumulative Funding (30D)
-          </div>
-          <div
-            className={`mt-0.5 text-[20px] tnum font-semibold ${
-              total >= 0 ? 'text-gain' : 'text-warn'
-            }`}
-          >
-            {fmtSign(total)}
-          </div>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>Cumulative Funding (30D)</CardTitle>
+        <CardDescription className={total >= 0 ? 'text-emerald-400' : 'text-amber-400'}>
+          {fmtSign(total)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="fundFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="rgba(255,255,255,.07)" vertical={false} />
+              <XAxis dataKey="label" stroke="#73737f" fontSize={10} tickLine={false} axisLine={false} minTickGap={28} />
+              <YAxis width={42} stroke="#73737f" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => fmtSign(v, 0)} />
+              <Tooltip
+                contentStyle={{ background: '#141418', border: '1px solid #2d2d33', borderRadius: 12 }}
+                formatter={(v: any) => [fmtSign(v), 'Cumulative']}
+              />
+              <Area type="monotone" dataKey="cum" stroke="#f59e0b" strokeWidth={2} fill="url(#fundFill)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
-
-      <div className="h-[220px] mt-3">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}>
-            <defs>
-              <linearGradient id="fundFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f77f00" stopOpacity={0.32} />
-                <stop offset="100%" stopColor="#f77f00" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis
-              dataKey="label"
-              stroke="#6b7280"
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={28}
-            />
-            <YAxis
-              stroke="#6b7280"
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              width={60}
-              tickFormatter={(v) => fmtSign(v, 0)}
-            />
-            <Tooltip
-              cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
-              formatter={(v: any) => [fmtSign(v), 'Cumulative']}
-            />
-            <Area
-              type="monotone"
-              dataKey="cum"
-              stroke="#f77f00"
-              strokeWidth={2}
-              fill="url(#fundFill)"
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
