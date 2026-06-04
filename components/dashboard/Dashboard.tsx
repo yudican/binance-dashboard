@@ -346,7 +346,7 @@ function SummaryCard({
             ['Open Notional', money(summary.active_notional, false)],
           ]}
         />
-        <NeonStrip label="Unrealized PnL" value={money(liveUnrealized)} />
+        <NeonStrip label="Unrealized PnL" value={money(liveUnrealized)} amount={liveUnrealized} />
       </CardContent>
     </Card>
   )
@@ -368,7 +368,7 @@ function PerformanceCard({ summary }: { summary: Summary }) {
             ['Win Rate', percent(summary.win_rate)],
           ]}
         />
-        <NeonStrip label="Total Profit" value={money(summary.net_pnl)} />
+        <NeonStrip label="Total Profit" value={money(summary.net_pnl)} amount={summary.net_pnl} />
       </CardContent>
     </Card>
   )
@@ -380,16 +380,23 @@ function InfoGrid({ items }: { items: [string, string][] }) {
       {items.map(([k, v]) => (
         <div key={k} className="flex justify-between gap-4 text-xs">
           <span className="text-muted-foreground">{k}</span>
-          <b>{v}</b>
+          <b className={v.startsWith('-') ? 'text-rose-400' : v.startsWith('+') ? 'text-emerald-400' : ''}>{v}</b>
         </div>
       ))}
     </div>
   )
 }
 
-function NeonStrip({ label, value }: { label: string; value: string }) {
+function NeonStrip({ label, value, amount = 0 }: { label: string; value: string; amount?: number }) {
+  const neg = amount < 0
   return (
-    <div className="flex items-center justify-between rounded-lg border border-emerald-500/10 bg-[radial-gradient(circle,rgba(16,185,129,.35)_1px,transparent_1px)] bg-[length:8px_8px] p-3 text-emerald-400">
+    <div
+      className={`flex items-center justify-between rounded-lg border bg-[length:8px_8px] p-3 ${
+        neg
+          ? 'border-rose-500/10 bg-[radial-gradient(circle,rgba(244,63,94,.35)_1px,transparent_1px)] text-rose-400'
+          : 'border-emerald-500/10 bg-[radial-gradient(circle,rgba(16,185,129,.35)_1px,transparent_1px)] text-emerald-400'
+      }`}
+    >
       <span>{label}</span>
       <b className="text-lg">{value}</b>
     </div>
