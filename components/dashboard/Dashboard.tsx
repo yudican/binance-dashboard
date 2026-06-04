@@ -14,6 +14,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -414,6 +415,8 @@ function ChartCard({
   type: 'area' | 'bar'
   className?: string
 }) {
+  const neg = type === 'area' && data.length > 0 && data[data.length - 1].value < 0
+  const lineColor = neg ? '#f43f5e' : '#34d399'
   return (
     <Card className={className}>
       <CardHeader>
@@ -428,15 +431,15 @@ function ChartCard({
                 <AreaChart data={data}>
                   <defs>
                     <linearGradient id="pnl" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#34d399" stopOpacity={0.45} />
-                      <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                      <stop offset="0%" stopColor={lineColor} stopOpacity={0.45} />
+                      <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="rgba(255,255,255,.07)" vertical={false} />
                   <XAxis dataKey="time" hide />
                   <YAxis width={42} stroke="#73737f" />
                   <Tooltip contentStyle={{ background: '#141418', border: '1px solid #2d2d33', borderRadius: 12 }} />
-                  <Area type="monotone" dataKey="value" stroke="#34d399" fill="url(#pnl)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="value" stroke={lineColor} fill="url(#pnl)" strokeWidth={2} />
                 </AreaChart>
               ) : (
                 <BarChart data={data}>
@@ -444,7 +447,11 @@ function ChartCard({
                   <XAxis dataKey="time" hide />
                   <YAxis width={42} stroke="#73737f" />
                   <Tooltip contentStyle={{ background: '#141418', border: '1px solid #2d2d33', borderRadius: 12 }} />
-                  <Bar dataKey="value" fill="#34d399" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {data.map((d, i) => (
+                      <Cell key={i} fill={d.value < 0 ? '#f43f5e' : '#34d399'} />
+                    ))}
+                  </Bar>
                 </BarChart>
               )}
             </ResponsiveContainer>
