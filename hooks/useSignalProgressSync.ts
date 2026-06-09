@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { liveStatus, type Signal } from '@/lib/signals'
+import { liveStatus, normalizePair, type Signal } from '@/lib/signals'
 
 /**
  * Watches live prices against signals and persists progress to the store when
@@ -24,7 +24,7 @@ export function useSignalProgressSync(signals: Signal[], marks: Record<string, n
         if (s.status === 'closed' || s.side === 'WATCH') continue
         if (inflight.current.has(s.id)) continue
 
-        const price = marks[s.pair.toUpperCase()]
+        const price = marks[normalizePair(s.pair)]
         const live = liveStatus(s, price)
         if (!live) continue
 

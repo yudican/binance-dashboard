@@ -5,7 +5,7 @@ import { Target } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useMarkPrices } from '@/hooks/useMarkPrices'
 import { useSignalProgressSync } from '@/hooks/useSignalProgressSync'
-import { liveStatus, type Signal } from '@/lib/signals'
+import { liveStatus, normalizePair, type Signal } from '@/lib/signals'
 import { cn } from '@/lib/utils'
 
 function fmtPrice(n: number) {
@@ -19,7 +19,7 @@ export default function SignalLive({ signal }: { signal: Signal }) {
   const marks = useMarkPrices(pairs)
   const signalsList = useMemo(() => [signal], [signal])
   useSignalProgressSync(signalsList, marks)
-  const price = marks[signal.pair.toUpperCase()]
+  const price = marks[normalizePair(signal.pair)]
   const live = liveStatus(signal, price)
   const isWatch = signal.side === 'WATCH'
   const pnlPos = (live?.pnlPercent ?? 0) >= 0

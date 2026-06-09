@@ -5,7 +5,7 @@ import SignalCard from '@/components/signals/SignalCard'
 import { useMarkPrices } from '@/hooks/useMarkPrices'
 import { useSignalProgressSync } from '@/hooks/useSignalProgressSync'
 import { cn } from '@/lib/utils'
-import type { Signal } from '@/lib/signals'
+import { normalizePair, type Signal } from '@/lib/signals'
 
 type Filter = 'all' | 'active' | 'long' | 'short' | 'watch' | 'closed'
 
@@ -68,7 +68,7 @@ export default function SignalsBoard({ signals }: { signals: Signal[] }) {
       {list.length ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {list.map((s) => (
-            <SignalCard key={s.id} signal={s} price={marks[s.pair.toUpperCase()]} />
+            <SignalCard key={s.id} signal={s} price={marks[normalizePair(s.pair)]} />
           ))}
         </section>
       ) : (

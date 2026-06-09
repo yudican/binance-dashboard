@@ -1,70 +1,41 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-
-const WS_BASE = 'wss://fstream.binance.com'
+import { useEffect, useState } from 'react'
+import { normalizePair } from '@/lib/signals'
 
 /**
- * Public Binance Futures mark-price stream — no API key, read-only.
- * Returns a live `pair -> markPrice` map for the given pairs.
+ * Live `symbol -> markPrice` map. Subscribes to the server-side SSE proxy
+ * (/api/marks), which holds the upstream Binance WebSocket — the browser
+ * never connects to Binance directly (works from geo-blocked regions when
+ * the server is hosted elsewhere). Keyed by bare exchange symbol (BTCUSDT).
  */
 export function useMarkPrices(pairs: string[]): Record<string, number> {
   const [marks, setMarks] = useState<Record<string, number>>({})
 
-  const key = Array.from(new Set(pairs.map((p) => p.toUpperCase())))
+  const key = Array.from(new Set(pairs.map(normalizePair).filter(Boolean)))
     .sort()
     .join(',')
 
-  const wsRef = useRef<WebSocket | null>(null)
-  const reconnect = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const closed = useRef(false)
-
   useEffect(() => {
-    closed.current = false
     if (!key) {
       setMarks({})
       return
     }
 
-    const streams = key
-      .split(',')
-      .map((s) => `${s.toLowerCase()}@markPrice@1s`)
-      .join('/')
-
-    const connect = () => {
-      if (closed.current) return
-      const ws = new WebSocket(`${WS_BASE}/stream?streams=${streams}`)
-      wsRef.current = ws
-
-      ws.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data)
-          const d = msg?.data
-          if (d?.e === 'markPriceUpdate' && d.s && d.p) {
-            setMarks((prev) => ({ ...prev, [d.s]: parseFloat(d.p) }))
-          }
-        } catch {
-          /* ignore */
+    const es = new EventSource(`/api/marks?symbols=${encodeURIComponent(key)}`)
+    es.onmessage = (ev) => {
+      try {
+        const d = JSON.parse(ev.data)
+        if (d?.s && typeof d.p === 'number' && isFinite(d.p)) {
+          setMarks((prev) => ({ ...prev, [d.s]: d.p }))
         }
-      }
-      ws.onclose = () => {
-        if (closed.current) return
-        reconnect.current = setTimeout(connect, 2500)
-      }
-      ws.onerror = () => ws.close()
-    }
-
-    connect()
-
-    return () => {
-      closed.current = true
-      if (reconnect.current) clearTimeout(reconnect.current)
-      if (wsRef.current) {
-        wsRef.current.onclose = null
-        wsRef.current.close()
-        wsRef.current = null
+      } catch {
+        /* ignore */
       }
     }
+    // EventSource reconnects automatically on transient errors.
+
+    return () => es.close()
   }, [key])
 
   return marks

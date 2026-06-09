@@ -56,6 +56,11 @@ export function summarize(signals: Signal[]): SignalSummary {
   }
 }
 
+/** Bare exchange symbol: uppercase, alphanumerics only (BTC/USDT -> BTCUSDT). */
+export function normalizePair(pair: string): string {
+  return pair.toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+
 /** Relative time label from an epoch-ms timestamp. */
 export function timeAgo(ts: number): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000))
