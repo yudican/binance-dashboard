@@ -56,9 +56,15 @@ export function summarize(signals: Signal[]): SignalSummary {
   }
 }
 
-/** Bare exchange symbol: uppercase, alphanumerics only (BTC/USDT -> BTCUSDT). */
+/**
+ * Market symbol for price feeds: uppercase, alphanumerics only, USDT-quoted by
+ * default. Bare base assets get a USDT suffix so they map to a real perp
+ * (ENA -> ENAUSDT, BTC/USDT -> BTCUSDT, ETHUSDC -> ETHUSDC).
+ */
 export function normalizePair(pair: string): string {
-  return pair.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const s = pair.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (!s) return ''
+  return /(USDT|USDC|USD)$/.test(s) ? s : `${s}USDT`
 }
 
 /** Relative time label from an epoch-ms timestamp. */
