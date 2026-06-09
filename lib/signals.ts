@@ -13,6 +13,8 @@ export interface Signal {
   /** price targets in order */
   targets: number[]
   stopLoss: number
+  /** server-managed: how many targets live price has reached (auto-updated) */
+  targetsHit: number
   /** relative timestamp label */
   createdAgo: string
   /** one-line trade thesis shown on the detail page */
@@ -71,4 +73,31 @@ export function riskReward(s: Signal): number {
   const reward = Math.abs(s.targets[0] - s.entry)
   const risk = Math.abs(s.entry - s.stopLoss)
   return risk ? reward / risk : 0
+}
+
+export interface LiveStatus {
+  /** per-target: true once live price has reached/crossed it */
+  tpHit: boolean[]
+  /** count of targets reached */
+  tpHitCount: number
+  /** live price has reached/crossed the stop loss */
+  stopHit: boolean
+  /** signed % move from entry in the trade's favor (LONG up, SHORT down) */
+  pnlPercent: number
+}
+
+/**
+ * Evaluate a signal against a live price. Direction-aware: LONG profits up,
+ * SHORT profits down. WATCH has no direction → no TP/stop evaluation.
+ */
+export function liveStatus(s: Signal, price: number | undefined): LiveStatus | null {
+  if (price === undefined || !isFinite(price)) return null
+  if (s.side === 'WATCH') {
+    return { tpHit: s.targets.map(() => false), tpHitCount: 0, stopHit: false, pnlPercent: 0 }
+  }
+  const long = s.side === 'LONG'
+  const tpHit = s.targets.map((t) => (long ? price >= t : price <= t))
+  const stopHit = long ? price <= s.stopLoss : price >= s.stopLoss
+  const pnlPercent = s.entry ? ((price - s.entry) / s.entry) * 100 * (long ? 1 : -1) : 0
+  return { tpHit, tpHitCount: tpHit.filter(Boolean).length, stopHit, pnlPercent }
 }

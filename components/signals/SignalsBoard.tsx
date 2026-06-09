@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import SignalCard from '@/components/signals/SignalCard'
+import { useMarkPrices } from '@/hooks/useMarkPrices'
+import { useSignalProgressSync } from '@/hooks/useSignalProgressSync'
 import { cn } from '@/lib/utils'
 import type { Signal } from '@/lib/signals'
 
@@ -36,6 +38,9 @@ function applyFilter(signals: Signal[], filter: Filter) {
 export default function SignalsBoard({ signals }: { signals: Signal[] }) {
   const [filter, setFilter] = useState<Filter>('all')
   const list = useMemo(() => applyFilter(signals, filter), [signals, filter])
+  const pairs = useMemo(() => signals.map((s) => s.pair), [signals])
+  const marks = useMarkPrices(pairs)
+  useSignalProgressSync(signals, marks)
 
   return (
     <>
@@ -63,7 +68,7 @@ export default function SignalsBoard({ signals }: { signals: Signal[] }) {
       {list.length ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {list.map((s) => (
-            <SignalCard key={s.id} signal={s} />
+            <SignalCard key={s.id} signal={s} price={marks[s.pair.toUpperCase()]} />
           ))}
         </section>
       ) : (

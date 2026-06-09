@@ -3,6 +3,7 @@ import {
   ValidationError,
   deleteSignal,
   listSignals,
+  updateProgress,
   upsertSignal,
 } from '@/lib/signalStore'
 
@@ -32,6 +33,27 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: e?.message || 'Failed to save signal' }, { status: 500 })
   }
+}
+
+// PATCH /api/signals -> persist live progress (TP reached / stop hit)
+// Body: { id: string, targetsHit?: number, stopHit?: boolean }
+export async function PATCH(req: NextRequest) {
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  const id = typeof body?.id === 'string' ? body.id : ''
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  const targetsHit =
+    typeof body?.targetsHit === 'number' && isFinite(body.targetsHit) ? body.targetsHit : undefined
+  const stopHit = body?.stopHit === true
+
+  const signal = await updateProgress(id, { targetsHit, stopHit })
+  if (!signal) return NextResponse.json({ error: 'Signal not found' }, { status: 404 })
+  return NextResponse.json({ signal })
 }
 
 // DELETE /api/signals?id=<id> -> remove one signal

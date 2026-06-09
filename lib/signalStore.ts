@@ -93,6 +93,7 @@ export async function upsertSignal(input: unknown): Promise<Signal> {
     entry: clean.entry,
     targets: clean.targets,
     stopLoss: clean.stopLoss,
+    targetsHit: 0,
     thesis: clean.thesis,
     reasons: clean.reasons,
     invalidation: clean.invalidation,
@@ -104,6 +105,41 @@ export async function upsertSignal(input: unknown): Promise<Signal> {
   if (idx >= 0) rows[idx] = row
   else rows.push(row)
   await writeRaw(rows)
+  return toSignal(row)
+}
+
+/**
+ * Persist live progress for a signal. Server is the source of truth:
+ * - `targetsHit` only ever increases (clamped to the target count)
+ * - status flips to `closed` when the stop is hit or all targets are reached
+ * Does NOT bump `updatedAt`, so list ordering stays stable.
+ */
+export async function updateProgress(
+  id: string,
+  patch: { targetsHit?: number; stopHit?: boolean }
+): Promise<Signal | null> {
+  const rows = prune(await readRaw())
+  const idx = rows.findIndex((r) => r.id === id)
+  if (idx < 0) return null
+
+  const row = rows[idx]
+  let changed = false
+
+  if (typeof patch.targetsHit === 'number' && patch.targetsHit > row.targetsHit) {
+    row.targetsHit = Math.min(Math.floor(patch.targetsHit), row.targets.length)
+    changed = true
+  }
+
+  const allHit = row.targetsHit >= row.targets.length
+  if ((patch.stopHit === true || allHit) && row.status !== 'closed') {
+    row.status = 'closed'
+    changed = true
+  }
+
+  if (changed) {
+    rows[idx] = row
+    await writeRaw(rows)
+  }
   return toSignal(row)
 }
 

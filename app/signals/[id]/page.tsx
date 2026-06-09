@@ -12,17 +12,12 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import SignalLive from '@/components/signals/SignalLive'
 import { cn } from '@/lib/utils'
 import { MARKET_BIAS, riskReward, type Signal } from '@/lib/signals'
 import { getSignalById } from '@/lib/signalStore'
 
 export const dynamic = 'force-dynamic'
-
-function fmtPrice(n: number) {
-  const abs = Math.abs(n)
-  const dec = abs >= 100 ? 2 : abs >= 1 ? 3 : 4
-  return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
-}
 
 const STATUS_STYLES: Record<Signal['status'], string> = {
   active: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
@@ -108,37 +103,8 @@ export default async function SignalDetailPage({ params }: { params: { id: strin
       </Card>
 
       <section className="grid gap-5 lg:grid-cols-2">
-        {/* trade levels */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Trade Levels</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <Level label="Entry" value={fmtPrice(signal.entry)} accent />
-              <Level label="Stop" value={fmtPrice(signal.stopLoss)} tone="bad" />
-            </div>
-            <div>
-              <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Target className="h-3.5 w-3.5" />
-                Targets
-              </div>
-              <div className="space-y-2">
-                {signal.targets.map((t, i) => {
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
-                    >
-                      <span className="text-muted-foreground">TP{i + 1}</span>
-                      <span className="font-mono font-semibold">{fmtPrice(t)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* trade levels (live) */}
+        <SignalLive signal={signal} />
 
         {/* reasons */}
         <Card>
@@ -216,33 +182,6 @@ function KeyStat({ icon, label, value }: { icon: React.ReactNode; label: string;
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function Level({
-  label,
-  value,
-  accent,
-  tone,
-}: {
-  label: string
-  value: string
-  accent?: boolean
-  tone?: 'bad'
-}) {
-  return (
-    <div className="rounded-lg border bg-muted/20 px-2 py-3">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div
-        className={cn(
-          'mt-1 font-mono text-sm font-bold',
-          accent && 'text-primary',
-          tone === 'bad' && 'text-rose-400'
-        )}
-      >
-        {value}
-      </div>
-    </div>
   )
 }
 

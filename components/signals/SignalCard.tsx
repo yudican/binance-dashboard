@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ArrowDownRight, ArrowUpRight, ChevronRight, Eye, Target } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import type { Signal } from '@/lib/signals'
+import { liveStatus, type Signal } from '@/lib/signals'
 
 function fmtPrice(n: number) {
   const abs = Math.abs(n)
@@ -28,9 +28,12 @@ const SIDE_ICON = {
   WATCH: Eye,
 }
 
-export default function SignalCard({ signal }: { signal: Signal }) {
+export default function SignalCard({ signal, price }: { signal: Signal; price?: number }) {
   const sideBg = SIDE_STYLES[signal.side]
   const SideIcon = SIDE_ICON[signal.side]
+  const live = liveStatus(signal, price)
+  const isWatch = signal.side === 'WATCH'
+  const pnlPos = (live?.pnlPercent ?? 0) >= 0
 
   return (
     <Link href={`/signals/${signal.id}`} className="group block">
@@ -52,9 +55,15 @@ export default function SignalCard({ signal }: { signal: Signal }) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide', sideBg)}>
-            {signal.side}
-          </span>
+          {live?.stopHit ? (
+            <span className="rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-rose-300">
+              STOP HIT
+            </span>
+          ) : (
+            <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide', sideBg)}>
+              {signal.side}
+            </span>
+          )}
           <span
             className={cn(
               'rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize',
@@ -86,8 +95,14 @@ export default function SignalCard({ signal }: { signal: Signal }) {
       </div>
 
       {/* price grid */}
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <PriceCell label="Entry" value={fmtPrice(signal.entry)} accent />
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <PriceCell label="Entry" value={fmtPrice(signal.entry)} />
+        <PriceCell
+          label="Live"
+          value={price !== undefined ? fmtPrice(price) : '—'}
+          tone={price === undefined ? undefined : pnlPos ? 'good' : 'bad'}
+          pulse={price !== undefined}
+        />
         <PriceCell label="Stop" value={fmtPrice(signal.stopLoss)} tone="bad" />
       </div>
 
@@ -95,19 +110,43 @@ export default function SignalCard({ signal }: { signal: Signal }) {
       <div>
         <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Target className="h-3.5 w-3.5" />
-          <span>Targets · {signal.targets.length}</span>
+          <span>
+            Targets · {!isWatch ? `${Math.max(signal.targetsHit, live?.tpHitCount ?? 0)}/${signal.targets.length} hit` : signal.targets.length}
+          </span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {signal.targets.map((t, i) => (
-            <span
-              key={i}
-              className="rounded-md border border-border bg-muted/30 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-            >
-              TP{i + 1} {fmtPrice(t)}
-            </span>
-          ))}
+          {signal.targets.map((t, i) => {
+            const hit = i < signal.targetsHit || !!live?.tpHit[i]
+            return (
+              <span
+                key={i}
+                className={cn(
+                  'rounded-md border px-2 py-0.5 font-mono text-[11px]',
+                  hit
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 line-through'
+                    : 'border-border bg-muted/30 text-muted-foreground'
+                )}
+              >
+                TP{i + 1} {fmtPrice(t)}
+              </span>
+            )
+          })}
         </div>
       </div>
+
+      {!isWatch && (
+        <div className="flex items-center justify-between border-t pt-3">
+          <span className="text-[11px] text-muted-foreground">Live PnL</span>
+          <span
+            className={cn(
+              'font-mono text-lg font-black',
+              live === null ? 'text-muted-foreground' : pnlPos ? 'text-emerald-400' : 'text-rose-400'
+            )}
+          >
+            {live === null ? '—' : `${pnlPos ? '+' : ''}${live.pnlPercent.toFixed(2)}%`}
+          </span>
+        </div>
+      )}
 
       <div className="mt-auto flex items-center justify-center gap-1 border-t pt-3 text-[11px] font-medium text-muted-foreground transition group-hover:text-primary">
         View analysis
@@ -123,19 +162,25 @@ function PriceCell({
   value,
   accent,
   tone,
+  pulse,
 }: {
   label: string
   value: string
   accent?: boolean
-  tone?: 'bad'
+  tone?: 'good' | 'bad'
+  pulse?: boolean
 }) {
   return (
     <div className="rounded-lg border bg-muted/20 px-1.5 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+        {pulse && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />}
+        {label}
+      </div>
       <div
         className={cn(
           'mt-0.5 font-mono text-xs font-semibold sm:text-sm',
           accent && 'text-primary',
+          tone === 'good' && 'text-emerald-400',
           tone === 'bad' && 'text-rose-400'
         )}
       >
