@@ -1,184 +1,85 @@
-'use client'
+import Link from 'next/link'
+import { Activity, Gem, LayoutDashboard, Radio, Target, TrendingUp } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import SignalsBoard from '@/components/signals/SignalsBoard'
+import { listSignals } from '@/lib/signalStore'
+import { summarize } from '@/lib/signals'
+import { cn } from '@/lib/utils'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Gem } from 'lucide-react'
-import Header from '@/components/layout/Header'
-import LoginModal from '@/components/auth/LoginModal'
-import Dashboard from '@/components/dashboard/Dashboard'
-import { useSession } from '@/hooks/useSession'
-import { useBinance } from '@/hooks/useBinance'
-import { useBinanceStream } from '@/hooks/useBinanceStream'
+export const dynamic = 'force-dynamic'
 
-interface Toast {
-  id: number
-  message: string
-}
-
-export default function Page() {
-  const { ready, authed, get, set, clear } = useSession()
-  const [creds, setCreds] = useState<{ apiKey: string; apiSecret: string } | null>(null)
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const [loginError, setLoginError] = useState<string | null>(null)
-  const firstLoadDone = useRef<boolean>(false)
-
-  const pushToast = useCallback((message: string) => {
-    const id = Date.now() + Math.floor(Math.random() * 9999)
-    setToasts((prev) => [...prev, { id, message }])
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 4500)
-  }, [])
-
-  const handleAuthFail = useCallback(
-    (msg: string) => {
-      clear()
-      setCreds(null)
-      setModalOpen(true)
-      setLoginError(msg)
-      pushToast(msg)
-    },
-    [clear, pushToast]
-  )
-
-  const {
-    account,
-    positions,
-    openOrders,
-    pnlIncome,
-    fundingIncome,
-    commissionIncome,
-    allIncome,
-    commissionRate,
-    loading,
-    refreshing,
-    error,
-    lastUpdated,
-    refresh,
-  } = useBinance(creds, handleAuthFail)
-
-  // Bootstrap from sessionStorage once
-  useEffect(() => {
-    if (!ready) return
-    if (authed) {
-      const c = get()
-      if (c.apiKey && c.apiSecret) {
-        setCreds(c)
-        setModalOpen(false)
-        return
-      }
-    }
-    setModalOpen(true)
-  }, [ready, authed, get])
-
-  // Surface fetch errors as toasts (but only when we have creds)
-  useEffect(() => {
-    if (error && creds) pushToast(error)
-  }, [error, creds, pushToast])
-
-  // Mark first-load as done once we have data
-  useEffect(() => {
-    if (!loading && account) firstLoadDone.current = true
-  }, [loading, account])
-
-  // ---- Realtime websocket layer ----
-  const symbols = useMemo(() => positions.map((p) => p.symbol), [positions])
-  const { marks, connected: wsConnected } = useBinanceStream({
-    apiKey: creds?.apiKey || '',
-    apiSecret: creds?.apiSecret || '',
-    symbols,
-    onUserData: refresh,
-  })
-
-  const handleLogin = async (apiKey: string, apiSecret: string) => {
-    setLoginError(null)
-    set(apiKey, apiSecret)
-    setCreds({ apiKey, apiSecret })
-    setModalOpen(false)
-    firstLoadDone.current = false
-  }
-
-  const handleLogout = () => {
-    clear()
-    setCreds(null)
-    setModalOpen(true)
-    setLoginError(null)
-  }
-
-  const connected = !!creds && !!account && !loading
+export default async function SignalsHome() {
+  const signals = await listSignals()
+  const summary = summarize(signals)
 
   return (
-    <>
-      <main className="relative z-10 mx-auto min-h-screen max-w-[1400px] space-y-4 p-3 sm:p-4 lg:p-6">
-        <Header
-          connected={connected}
-          live={connected && wsConnected}
-          refreshing={refreshing}
-          lastUpdated={lastUpdated}
-          onRefresh={refresh}
-          onLogout={handleLogout}
-        />
-
-        {/* Full-page spinner only on the very first load while authed */}
-        {creds && loading && !firstLoadDone.current ? (
-          <FullPageLoader />
-        ) : creds ? (
-          <Dashboard
-            account={account}
-            positions={positions}
-            openOrders={openOrders}
-            pnlIncome={pnlIncome}
-            fundingIncome={fundingIncome}
-            commissionIncome={commissionIncome}
-            allIncome={allIncome}
-            commissionRate={commissionRate}
-            firstLoad={!firstLoadDone.current}
-            marks={marks}
-          />
-        ) : (
-          <DisconnectedState />
-        )}
-      </main>
-
-      <LoginModal open={modalOpen} onSubmit={handleLogin} errorMessage={loginError} />
-
-      <div className="fixed bottom-6 right-6 z-[60] space-y-2">
-        {toasts.map((t) => (
-          <div key={t.id} className="toast">
-            {t.message}
+    <main className="relative z-10 mx-auto min-h-screen max-w-[1400px] space-y-5 px-3 py-6 sm:px-4 sm:py-8 lg:px-6 lg:py-10">
+      {/* hero / nav */}
+      <header className="flex flex-col gap-3 rounded-2xl border bg-black/40 p-3 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="orange-glow grid h-11 w-11 place-items-center rounded-xl border border-primary/70 bg-primary/10 text-primary">
+            <Gem className="h-6 w-6" />
           </div>
-        ))}
-      </div>
-    </>
+          <div>
+            <h1 className="text-base font-bold tracking-wide sm:text-lg">
+              FUTURES<span className="text-primary">DESK</span>
+              <span className="ml-2 text-muted-foreground">Signals</span>
+            </h1>
+            <p className="text-xs text-muted-foreground">Live trade ideas · Binance USDT-M Futures</p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-4 text-sm font-medium text-primary transition hover:bg-primary/20"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Open Dashboard
+        </Link>
+      </header>
+
+      {/* summary strip */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat icon={<Radio />} label="Total Signals" value={String(summary.total)} />
+        <Stat icon={<Activity />} label="Active Now" value={String(summary.active)} tone="accent" />
+        <Stat icon={<Target />} label="Win Rate" value={`${summary.winRate.toFixed(0)}%`} tone="good" />
+        <Stat icon={<TrendingUp />} label="Avg Gain" value={`+${summary.avgGain.toFixed(1)}%`} tone="good" />
+      </section>
+
+      <SignalsBoard signals={signals} />
+    </main>
   )
 }
 
-function FullPageLoader() {
+function Stat({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  tone?: 'good' | 'accent'
+}) {
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
-      <div
-        className="h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent"
-        aria-label="Loading"
-      />
-      <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-        Fetching futures data…
-      </div>
-    </div>
-  )
-}
-
-function DisconnectedState() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center">
-        <div className="orange-glow mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl border border-primary/70 bg-primary/10 text-primary">
-          <Gem className="h-6 w-6" />
+    <Card className="metric-glow overflow-hidden pt-6">
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border bg-muted/30 text-muted-foreground [&>svg]:h-5 [&>svg]:w-5">
+          {icon}
         </div>
-        <div className="text-[15px] font-semibold tracking-[0.12em]">
-          FUTURES<span className="text-primary">DESK</span>
+        <div className="min-w-0">
+          <div className="text-[11px] text-muted-foreground">{label}</div>
+          <div
+            className={cn(
+              'font-mono text-xl font-black tracking-tight sm:text-2xl',
+              tone === 'good' && 'text-emerald-400',
+              tone === 'accent' && 'text-primary'
+            )}
+          >
+            {value}
+          </div>
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">Connect to begin.</div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

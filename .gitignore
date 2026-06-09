@@ -49,3 +49,6 @@ next-env.d.ts
 # logs
 logs
 *.log
+
+# local signal store
+.data/
