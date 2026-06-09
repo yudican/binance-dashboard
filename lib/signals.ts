@@ -1,4 +1,4 @@
-export type SignalSide = 'LONG' | 'SHORT'
+export type SignalSide = 'LONG' | 'SHORT' | 'WATCH'
 export type SignalStatus = 'active' | 'pending' | 'closed'
 
 export interface Signal {
@@ -13,12 +13,6 @@ export interface Signal {
   /** price targets in order */
   targets: number[]
   stopLoss: number
-  /** current price (for active) or exit (for closed) */
-  current: number
-  /** realized/unrealized return on margin, percent */
-  pnlPercent: number
-  /** how many of the targets have been hit */
-  targetsHit: number
   /** relative timestamp label */
   createdAgo: string
   /** one-line trade thesis shown on the detail page */
@@ -56,9 +50,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 62840,
     targets: [63950, 65200, 67000],
     stopLoss: 61200,
-    current: 64310,
-    pnlPercent: 23.4,
-    targetsHit: 1,
     createdAgo: '2h ago',
     timeframe: '4H · reclaim of range low',
     thesis:
@@ -81,9 +72,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 3420,
     targets: [3360, 3280, 3180],
     stopLoss: 3510,
-    current: 3372,
-    pnlPercent: 11.2,
-    targetsHit: 1,
     createdAgo: '4h ago',
     timeframe: '1D · lower-high rejection',
     thesis:
@@ -106,9 +94,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 142.5,
     targets: [148.0, 154.5, 162.0],
     stopLoss: 136.8,
-    current: 141.9,
-    pnlPercent: 0,
-    targetsHit: 0,
     createdAgo: '12m ago',
     timeframe: '1H · coiled spring',
     thesis:
@@ -131,9 +116,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 548.0,
     targets: [560, 575, 590],
     stopLoss: 532,
-    current: 591.2,
-    pnlPercent: 47.3,
-    targetsHit: 3,
     createdAgo: '1d ago',
     timeframe: '4H · trend continuation',
     thesis:
@@ -156,9 +138,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 0.624,
     targets: [0.61, 0.598, 0.58],
     stopLoss: 0.642,
-    current: 0.643,
-    pnlPercent: -28.8,
-    targetsHit: 0,
     createdAgo: '1d ago',
     timeframe: '1H · failed breakdown',
     thesis:
@@ -181,9 +160,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 0.1284,
     targets: [0.134, 0.141, 0.15],
     stopLoss: 0.1212,
-    current: 0.1331,
-    pnlPercent: 54.9,
-    targetsHit: 1,
     createdAgo: '6h ago',
     timeframe: '1H · momentum breakout',
     thesis:
@@ -206,9 +182,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 38.2,
     targets: [37.1, 35.8, 34.0],
     stopLoss: 39.9,
-    current: 38.4,
-    pnlPercent: 0,
-    targetsHit: 0,
     createdAgo: '25m ago',
     timeframe: '4H · bear flag',
     thesis:
@@ -231,9 +204,6 @@ export const DUMMY_SIGNALS: Signal[] = [
     entry: 16.42,
     targets: [17.1, 18.0, 19.2],
     stopLoss: 15.6,
-    current: 16.88,
-    pnlPercent: 19.6,
-    targetsHit: 0,
     createdAgo: '3h ago',
     timeframe: '1D · accumulation breakout',
     thesis:
@@ -251,19 +221,16 @@ export const DUMMY_SIGNALS: Signal[] = [
 export interface SignalSummary {
   total: number
   active: number
-  winRate: number
-  avgGain: number
+  long: number
+  short: number
 }
 
 export function summarize(signals: Signal[]): SignalSummary {
-  const closed = signals.filter((s) => s.status === 'closed')
-  const wins = closed.filter((s) => s.pnlPercent > 0)
-  const gains = signals.filter((s) => s.pnlPercent > 0).map((s) => s.pnlPercent)
   return {
     total: signals.length,
     active: signals.filter((s) => s.status === 'active').length,
-    winRate: closed.length ? (wins.length / closed.length) * 100 : 0,
-    avgGain: gains.length ? gains.reduce((a, b) => a + b, 0) / gains.length : 0,
+    long: signals.filter((s) => s.side === 'LONG').length,
+    short: signals.filter((s) => s.side === 'SHORT').length,
   }
 }
 

@@ -73,16 +73,13 @@ Didefinisikan di `lib/signals.ts`.
 | ------------- | ----------------------------------- | ------------------------------------------------------- |
 | `id`          | `string`                            | Dibuat server: `pair-side` (mis. `btcusdt-long`).       |
 | `pair`        | `string`                            | Simbol, uppercase (mis. `BTCUSDT`).                     |
-| `side`        | `'LONG' \| 'SHORT'`                 | Arah posisi.                                            |
+| `side`        | `'LONG' \| 'SHORT' \| 'WATCH'`      | Arah posisi. `WATCH` = belum long/short (warna kuning). |
 | `status`      | `'active' \| 'pending' \| 'closed'` | Status sinyal.                                          |
 | `leverage`    | `number`                            | Leverage (mis. `10`).                                   |
 | `confidence`  | `number`                            | Keyakinan model 0–100.                                  |
 | `entry`       | `number`                            | Harga entry.                                            |
 | `targets`     | `number[]`                          | Daftar target (TP1, TP2, ...).                          |
 | `stopLoss`    | `number`                            | Harga stop loss.                                        |
-| `current`     | `number`                            | Harga sekarang (active) / exit (closed).                |
-| `pnlPercent`  | `number`                            | Return on margin, persen.                               |
-| `targetsHit`  | `number`                            | Jumlah target yang sudah kena.                          |
 | `createdAgo`  | `string`                            | Label relatif (mis. `2h ago`), dihitung server saat read. |
 | `thesis`      | `string`                            | Paragraf alasan trade.                                  |
 | `reasons`     | `string[]`                          | Bullet alasan setup trigger.                            |
@@ -162,7 +159,7 @@ Kirim object berikut ke `POST /api/signals`. Server mengelola `id`, `createdAt`,
 | Field         | Tipe                                | Aturan                                  |
 | ------------- | ----------------------------------- | --------------------------------------- |
 | `pair`        | `string`                            | Non-kosong. Disimpan uppercase.         |
-| `side`        | `'LONG' \| 'SHORT'`                 | Case-insensitive (`long` → `LONG`).     |
+| `side`        | `'LONG' \| 'SHORT' \| 'WATCH'`      | Case-insensitive (`long` → `LONG`).     |
 | `status`      | `'active' \| 'pending' \| 'closed'` | Case-insensitive.                       |
 | `leverage`    | `number`                            | Angka berhingga.                        |
 | `confidence`  | `number`                            | Angka (0–100).                          |
@@ -174,13 +171,7 @@ Kirim object berikut ke `POST /api/signals`. Server mengelola `id`, `createdAt`,
 | `invalidation`| `string`                            | Non-kosong.                             |
 | `timeframe`   | `string`                            | Non-kosong.                             |
 
-### Field opsional (ada default)
-
-| Field        | Tipe     | Default        |
-| ------------ | -------- | -------------- |
-| `current`    | `number` | = `entry`      |
-| `pnlPercent` | `number` | `0`            |
-| `targetsHit` | `number` | `0`            |
+> Semua field di atas wajib. Tidak ada field opsional.
 
 ### Contoh payload lengkap
 
@@ -201,14 +192,11 @@ Kirim object berikut ke `POST /api/signals`. Server mengelola `id`, `createdAt`,
     "Volume divergence: sell volume turun di tiap leg bawah"
   ],
   "invalidation": "4H close di bawah $61.2k membatalkan reclaim → exit.",
-  "timeframe": "4H · reclaim of range low",
-  "current": 64310,
-  "pnlPercent": 23.4,
-  "targetsHit": 1
+  "timeframe": "4H · reclaim of range low"
 }
 ```
 
-### Payload minimal (pakai default)
+### Contoh payload lain
 
 ```json
 {
@@ -300,33 +288,33 @@ await fetch('http://localhost:3000/api/signals', {
 ### Homepage `/` (`app/page.tsx`)
 
 - **Server component** (`export const dynamic = 'force-dynamic'`) → baca `listSignals()`.
-- Render: hero/nav (link ke `/dashboard`), strip ringkasan (Total / Active / Win Rate /
-  Avg Gain dari `summarize()`), lalu `<SignalsBoard>`.
+- Render: hero/nav (link ke `/dashboard`), strip ringkasan (Total / Active / Long /
+  Short dari `summarize()`), lalu `<SignalsBoard>`.
 
 ### `SignalsBoard` (`components/signals/SignalsBoard.tsx`)
 
-- **Client component**: filter tabs (All / Active / Long / Short / Closed) + grid kartu.
+- **Client component**: filter tabs (All / Active / Long / Short / Watch / Closed) + grid kartu.
 - Grid responsif: `1 → 2 (sm) → 3 (xl) → 4 (2xl)` kolom.
 
 ### `SignalCard` (`components/signals/SignalCard.tsx`)
 
 - Kartu sinyal, dibungkus `<Link href="/signals/{id}">`.
-- Tampil: pair, badge side, status, leverage, bar confidence, grid Entry/Mark/Stop,
-  chip target (TP hit dicoret hijau), return %, hover "View analysis →".
+- Tampil: pair, badge side (LONG hijau / SHORT merah / WATCH kuning), status, leverage,
+  bar confidence, grid Entry/Stop, chip target, hover "View analysis →".
 
 ### Detail `/signals/[id]` (`app/signals/[id]/page.tsx`)
 
 - **Server component** (`force-dynamic`) → `getSignalById(params.id)`, `notFound()` bila null.
-- Seksi: header (pair/side/status/return), quick stats (Confidence, Leverage,
-  **Risk:Reward** dari `riskReward()`, Targets Hit), **Trade Thesis**, **Trade Levels**
-  (Entry/Mark/Stop + daftar TP HIT/OPEN), **Why This Setup** (reasons), **Invalidation**,
+- Seksi: header (pair/side/status), quick stats (Confidence, Leverage,
+  **Risk:Reward** dari `riskReward()`), **Trade Thesis**, **Trade Levels**
+  (Entry/Stop + daftar TP), **Why This Setup** (reasons), **Invalidation**,
   **Market Bias** (dari konstanta `MARKET_BIAS`).
 
 ### Helper (`lib/signals.ts`)
 
 | Fungsi              | Guna                                                        |
 | ------------------- | ----------------------------------------------------------- |
-| `summarize(list)`   | Hitung total, active, win rate, avg gain untuk strip ringkasan. |
+| `summarize(list)`   | Hitung total, active, long, short untuk strip ringkasan. |
 | `riskReward(s)`     | Reward-to-risk pakai target pertama: `|TP1−entry| / |entry−SL|`. |
 | `timeAgo(ts)`       | Epoch ms → label relatif (`just now`, `12m ago`, `3h ago`, `2d ago`). |
 
@@ -336,8 +324,6 @@ await fetch('http://localhost:3000/api/signals', {
 
 - **Ganti dummy → feed asata.** `DUMMY_SIGNALS` hanya seed pertama; setelah ada POST
   beneran, data berasal dari `.data/signals.json`.
-- **`current` / `pnlPercent` realtime.** Saat ini statis per input. Bisa di-update via
-  POST ulang (upsert) atau, ke depan, dihitung dari mark price (lihat `useBinanceStream`).
 - **`MARKET_BIAS` masih konstanta global.** Bila ingin per-sinyal, tambah field di payload
   dan model data.
 - **Durabilitas.** Untuk multi-instance/serverless, migrasi storage ke SQLite atau DB

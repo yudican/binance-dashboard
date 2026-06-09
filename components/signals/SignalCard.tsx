@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowDownRight, ArrowUpRight, ChevronRight, Target } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronRight, Eye, Target } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { Signal } from '@/lib/signals'
@@ -16,13 +16,21 @@ const STATUS_STYLES: Record<Signal['status'], string> = {
   closed: 'border-border bg-muted/40 text-muted-foreground',
 }
 
+const SIDE_STYLES: Record<Signal['side'], string> = {
+  LONG: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  SHORT: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  WATCH: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
+}
+
+const SIDE_ICON = {
+  LONG: ArrowUpRight,
+  SHORT: ArrowDownRight,
+  WATCH: Eye,
+}
+
 export default function SignalCard({ signal }: { signal: Signal }) {
-  const isLong = signal.side === 'LONG'
-  const pnlPos = signal.pnlPercent >= 0
-  const sideColor = isLong ? 'text-emerald-400' : 'text-rose-400'
-  const sideBg = isLong
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-    : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+  const sideBg = SIDE_STYLES[signal.side]
+  const SideIcon = SIDE_ICON[signal.side]
 
   return (
     <Link href={`/signals/${signal.id}`} className="group block">
@@ -36,11 +44,7 @@ export default function SignalCard({ signal }: { signal: Signal }) {
               sideBg
             )}
           >
-            {isLong ? (
-              <ArrowUpRight className="h-5 w-5" />
-            ) : (
-              <ArrowDownRight className="h-5 w-5" />
-            )}
+            <SideIcon className="h-5 w-5" />
           </div>
           <div>
             <div className="font-mono text-sm font-bold tracking-tight">{signal.pair}</div>
@@ -82,9 +86,8 @@ export default function SignalCard({ signal }: { signal: Signal }) {
       </div>
 
       {/* price grid */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <PriceCell label="Entry" value={fmtPrice(signal.entry)} />
-        <PriceCell label={signal.status === 'closed' ? 'Exit' : 'Mark'} value={fmtPrice(signal.current)} accent />
+      <div className="grid grid-cols-2 gap-2 text-center">
+        <PriceCell label="Entry" value={fmtPrice(signal.entry)} accent />
         <PriceCell label="Stop" value={fmtPrice(signal.stopLoss)} tone="bad" />
       </div>
 
@@ -92,38 +95,21 @@ export default function SignalCard({ signal }: { signal: Signal }) {
       <div>
         <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Target className="h-3.5 w-3.5" />
-          <span>Targets · {signal.targetsHit}/{signal.targets.length} hit</span>
+          <span>Targets · {signal.targets.length}</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {signal.targets.map((t, i) => {
-            const hit = i < signal.targetsHit
-            return (
-              <span
-                key={i}
-                className={cn(
-                  'rounded-md border px-2 py-0.5 font-mono text-[11px]',
-                  hit
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 line-through'
-                    : 'border-border bg-muted/30 text-muted-foreground'
-                )}
-              >
-                TP{i + 1} {fmtPrice(t)}
-              </span>
-            )
-          })}
+          {signal.targets.map((t, i) => (
+            <span
+              key={i}
+              className="rounded-md border border-border bg-muted/30 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+            >
+              TP{i + 1} {fmtPrice(t)}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* pnl footer */}
-      <div className="mt-auto flex items-center justify-between border-t pt-3">
-        <span className="text-[11px] text-muted-foreground">Return on margin</span>
-        <span className={cn('font-mono text-lg font-black', pnlPos ? 'text-emerald-400' : 'text-rose-400')}>
-          {pnlPos ? '+' : ''}
-          {signal.pnlPercent.toFixed(1)}%
-        </span>
-      </div>
-
-      <div className="flex items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition group-hover:text-primary">
+      <div className="mt-auto flex items-center justify-center gap-1 border-t pt-3 text-[11px] font-medium text-muted-foreground transition group-hover:text-primary">
         View analysis
         <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
       </div>

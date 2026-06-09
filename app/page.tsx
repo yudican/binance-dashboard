@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Activity, Gem, LayoutDashboard, Radio, Target, TrendingUp } from 'lucide-react'
+import { Activity, ArrowDownRight, ArrowUpRight, Gem, LayoutDashboard, Radio } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import SignalsBoard from '@/components/signals/SignalsBoard'
 import { listSignals } from '@/lib/signalStore'
@@ -41,8 +41,8 @@ export default async function SignalsHome() {
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={<Radio />} label="Total Signals" value={String(summary.total)} />
         <Stat icon={<Activity />} label="Active Now" value={String(summary.active)} tone="accent" />
-        <Stat icon={<Target />} label="Win Rate" value={`${summary.winRate.toFixed(0)}%`} tone="good" />
-        <Stat icon={<TrendingUp />} label="Avg Gain" value={`+${summary.avgGain.toFixed(1)}%`} tone="good" />
+        <Stat icon={<ArrowUpRight />} label="Long" value={String(summary.long)} tone="good" />
+        <Stat icon={<ArrowDownRight />} label="Short" value={String(summary.short)} />
       </section>
 
       <SignalsBoard signals={signals} />

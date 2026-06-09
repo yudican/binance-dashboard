@@ -5,13 +5,14 @@ import SignalCard from '@/components/signals/SignalCard'
 import { cn } from '@/lib/utils'
 import type { Signal } from '@/lib/signals'
 
-type Filter = 'all' | 'active' | 'long' | 'short' | 'closed'
+type Filter = 'all' | 'active' | 'long' | 'short' | 'watch' | 'closed'
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
   { key: 'long', label: 'Long' },
   { key: 'short', label: 'Short' },
+  { key: 'watch', label: 'Watch' },
   { key: 'closed', label: 'Closed' },
 ]
 
@@ -25,6 +26,8 @@ function applyFilter(signals: Signal[], filter: Filter) {
       return signals.filter((s) => s.side === 'LONG')
     case 'short':
       return signals.filter((s) => s.side === 'SHORT')
+    case 'watch':
+      return signals.filter((s) => s.side === 'WATCH')
     default:
       return signals
   }

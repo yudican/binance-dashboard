@@ -5,9 +5,9 @@ import {
   ArrowLeft,
   ArrowUpRight,
   CircleAlert,
+  Eye,
   Clock,
   Gauge,
-  ListChecks,
   Target,
   TrendingUp,
 } from 'lucide-react'
@@ -30,16 +30,25 @@ const STATUS_STYLES: Record<Signal['status'], string> = {
   closed: 'border-border bg-muted/40 text-muted-foreground',
 }
 
+const SIDE_STYLES: Record<Signal['side'], string> = {
+  LONG: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  SHORT: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  WATCH: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
+}
+
+const SIDE_ICON = {
+  LONG: ArrowUpRight,
+  SHORT: ArrowDownRight,
+  WATCH: Eye,
+}
+
 export default async function SignalDetailPage({ params }: { params: { id: string } }) {
   const signal = await getSignalById(params.id)
   if (!signal) notFound()
 
-  const isLong = signal.side === 'LONG'
-  const pnlPos = signal.pnlPercent >= 0
   const rr = riskReward(signal)
-  const sideBg = isLong
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-    : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+  const sideBg = SIDE_STYLES[signal.side]
+  const SideIcon = SIDE_ICON[signal.side]
 
   return (
     <main className="relative z-10 mx-auto min-h-screen max-w-[1100px] space-y-5 px-3 py-6 sm:px-4 sm:py-8 lg:px-6 lg:py-10">
@@ -56,7 +65,7 @@ export default async function SignalDetailPage({ params }: { params: { id: strin
       <header className="flex flex-col gap-4 rounded-2xl border bg-black/40 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex items-center gap-3">
           <div className={cn('grid h-12 w-12 shrink-0 place-items-center rounded-xl border', sideBg)}>
-            {isLong ? <ArrowUpRight className="h-7 w-7" /> : <ArrowDownRight className="h-7 w-7" />}
+            <SideIcon className="h-7 w-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -79,21 +88,13 @@ export default async function SignalDetailPage({ params }: { params: { id: strin
             </p>
           </div>
         </div>
-        <div className="text-left sm:text-right">
-          <div className="text-[11px] text-muted-foreground">Return on margin</div>
-          <div className={cn('font-mono text-3xl font-black', pnlPos ? 'text-emerald-400' : 'text-rose-400')}>
-            {pnlPos ? '+' : ''}
-            {signal.pnlPercent.toFixed(1)}%
-          </div>
-        </div>
       </header>
 
       {/* quick stats */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <KeyStat icon={<Gauge />} label="Confidence" value={`${signal.confidence}%`} />
         <KeyStat icon={<TrendingUp />} label="Leverage" value={`${signal.leverage}x`} />
         <KeyStat icon={<Target />} label="Risk : Reward" value={`1 : ${rr.toFixed(1)}`} />
-        <KeyStat icon={<ListChecks />} label="Targets Hit" value={`${signal.targetsHit}/${signal.targets.length}`} />
       </section>
 
       {/* thesis */}
@@ -113,9 +114,8 @@ export default async function SignalDetailPage({ params }: { params: { id: strin
             <CardTitle>Trade Levels</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <Level label="Entry" value={fmtPrice(signal.entry)} />
-              <Level label={signal.status === 'closed' ? 'Exit' : 'Mark'} value={fmtPrice(signal.current)} accent />
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <Level label="Entry" value={fmtPrice(signal.entry)} accent />
               <Level label="Stop" value={fmtPrice(signal.stopLoss)} tone="bad" />
             </div>
             <div>
@@ -125,29 +125,13 @@ export default async function SignalDetailPage({ params }: { params: { id: strin
               </div>
               <div className="space-y-2">
                 {signal.targets.map((t, i) => {
-                  const hit = i < signal.targetsHit
                   return (
                     <div
                       key={i}
-                      className={cn(
-                        'flex items-center justify-between rounded-lg border px-3 py-2 text-sm',
-                        hit
-                          ? 'border-emerald-500/40 bg-emerald-500/10'
-                          : 'border-border bg-muted/20'
-                      )}
+                      className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
                     >
                       <span className="text-muted-foreground">TP{i + 1}</span>
-                      <span className={cn('font-mono font-semibold', hit ? 'text-emerald-300 line-through' : '')}>
-                        {fmtPrice(t)}
-                      </span>
-                      <span
-                        className={cn(
-                          'rounded px-1.5 py-0.5 text-[10px] font-medium',
-                          hit ? 'bg-emerald-500/20 text-emerald-300' : 'bg-muted/40 text-muted-foreground'
-                        )}
-                      >
-                        {hit ? 'HIT' : 'OPEN'}
-                      </span>
+                      <span className="font-mono font-semibold">{fmtPrice(t)}</span>
                     </div>
                   )
                 })}

@@ -18,8 +18,7 @@ export interface StoredSignal extends Omit<Signal, 'createdAgo'> {
 }
 
 /**
- * Payload accepted by POST /api/signals. Server manages id/createdAt/createdAgo,
- * and `current` / `pnlPercent` / `targetsHit` default if omitted.
+ * Payload accepted by POST /api/signals. Server manages id/createdAt/createdAgo.
  */
 export interface SignalInput {
   pair: string
@@ -34,9 +33,6 @@ export interface SignalInput {
   reasons: string[]
   invalidation: string
   timeframe: string
-  current?: number
-  pnlPercent?: number
-  targetsHit?: number
 }
 
 export class ValidationError extends Error {}
@@ -118,9 +114,6 @@ export async function upsertSignal(input: unknown): Promise<Signal> {
     entry: clean.entry,
     targets: clean.targets,
     stopLoss: clean.stopLoss,
-    current: clean.current ?? clean.entry,
-    pnlPercent: clean.pnlPercent ?? 0,
-    targetsHit: clean.targetsHit ?? 0,
     thesis: clean.thesis,
     reasons: clean.reasons,
     invalidation: clean.invalidation,
@@ -156,13 +149,9 @@ function validate(b: any): SignalInput {
     if (typeof v !== 'number' || !isFinite(v)) throw new ValidationError(`"${k}" must be a number`)
     return v
   }
-  const optNum = (k: string): number | undefined => {
-    if (b[k] === undefined || b[k] === null) return undefined
-    return numb(k)
-  }
-
   const side = String(b.side).toUpperCase()
-  if (side !== 'LONG' && side !== 'SHORT') throw new ValidationError('"side" must be LONG or SHORT')
+  if (!['LONG', 'SHORT', 'WATCH'].includes(side))
+    throw new ValidationError('"side" must be LONG, SHORT or WATCH')
 
   const status = String(b.status).toLowerCase()
   if (!['active', 'pending', 'closed'].includes(status))
@@ -192,8 +181,5 @@ function validate(b: any): SignalInput {
     reasons: b.reasons as string[],
     invalidation: str('invalidation'),
     timeframe: str('timeframe'),
-    current: optNum('current'),
-    pnlPercent: optNum('pnlPercent'),
-    targetsHit: optNum('targetsHit'),
   }
 }
