@@ -38,6 +38,8 @@ export function useBinanceStream({
 
   const markWs = useRef<WebSocket | null>(null)
   const userWs = useRef<WebSocket | null>(null)
+  /** epoch ms of last mark-price frame; 0 = none yet. Drives REST fallback. */
+  const lastMarkMsg = useRef(0)
   const listenKey = useRef<string | null>(null)
   const keepAlive = useRef<ReturnType<typeof setInterval> | null>(null)
   const reconnectMark = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -81,6 +83,7 @@ export function useBinanceStream({
           const msg = JSON.parse(ev.data)
           const d = msg?.data
           if (d?.e === 'markPriceUpdate' && d.s && d.p) {
+            lastMarkMsg.current = Date.now()
             setMarks((prev) => ({ ...prev, [d.s]: parseFloat(d.p) }))
           }
         } catch {
@@ -105,6 +108,46 @@ export function useBinanceStream({
       }
     }
   }, [symbolsKey])
+
+  /* ---- REST fallback for mark price ----
+   * Some networks/regions open the ws but never deliver frames. When the
+   * mark stream is stale (no frame for >4s), poll premiumIndex so unrealized
+   * PnL still ticks. Skips polling while the ws is delivering data. */
+  useEffect(() => {
+    if (!symbolsKey || !apiKey || !apiSecret) return
+    const wanted = new Set(symbolsKey.split(','))
+
+    let stopped = false
+    const poll = async () => {
+      if (stopped) return
+      // ws healthy in the last 4s -> let it drive, skip this tick
+      if (Date.now() - lastMarkMsg.current < 4000) return
+      try {
+        const rows = await binanceFetch<{ symbol: string; markPrice: string }[]>(
+          '/fapi/v1/premiumIndex',
+          {},
+          apiKey,
+          apiSecret,
+          { signed: false }
+        )
+        if (stopped || !Array.isArray(rows)) return
+        const next: Record<string, number> = {}
+        for (const r of rows) {
+          if (wanted.has(r.symbol)) next[r.symbol] = parseFloat(r.markPrice)
+        }
+        if (Object.keys(next).length) setMarks((prev) => ({ ...prev, ...next }))
+      } catch {
+        /* ignore — ws may recover */
+      }
+    }
+
+    poll()
+    const id = setInterval(poll, 2500)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
+  }, [symbolsKey, apiKey, apiSecret])
 
   /* ---- User data stream (private, listenKey) ---- */
   useEffect(() => {
