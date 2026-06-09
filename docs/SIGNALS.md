@@ -41,11 +41,10 @@ components/
     SignalCard.tsx             ← kartu sinyal (link ke detail)
 
 lib/
-  signals.ts                   ← tipe Signal, dummy seed, helper (summarize, riskReward, timeAgo)
+  signals.ts                   ← tipe Signal, helper (summarize, riskReward, timeAgo)
   signalStore.ts               ← storage JSON + validasi + upsert/list/delete
 
-.data/
-  signals.json                 ← penyimpanan lokal (gitignored, dibuat otomatis)
+/tmp/signals.json              ← penyimpanan lokal (dibuat otomatis saat POST pertama)
 
 docs/
   SIGNALS.md                   ← dokumen ini
@@ -54,7 +53,7 @@ docs/
 **Alur data:**
 
 ```
-POST /api/signals ──► upsertSignal() ──► .data/signals.json
+POST /api/signals ──► upsertSignal() ──► /tmp/signals.json
                                               │
 GET  /api/signals ◄── listSignals() ◄─────────┘ (prune 24 jam, sort terbaru)
                                               │
@@ -101,10 +100,10 @@ Didefinisikan di `lib/signals.ts`.
 
 ## Storage Lokal
 
-- **Lokasi:** `.data/signals.json` di root project (otomatis dibuat, sudah di-`.gitignore`).
+- **Lokasi:** `/tmp/signals.json` (dibuat otomatis saat POST pertama).
 - **Format:** array `StoredSignal` JSON, indent 2 spasi.
 - **Tanpa dependency** — pakai `fs` bawaan Node. Endpoint berjalan di `runtime = 'nodejs'`.
-- **Seed pertama:** jika file belum ada, di-seed otomatis dari `DUMMY_SIGNALS` (8 sinyal contoh) agar UI tidak kosong.
+- **Tanpa seed.** Jika file belum ada, store kosong; UI menampilkan empty state sampai ada POST sinyal.
 
 > Catatan: storage berbasis file cocok untuk single-user / self-host (Node runtime).
 > Di lingkungan serverless yang ephemeral (mis. Vercel Lambda), file tidak persist —
@@ -322,8 +321,7 @@ await fetch('http://localhost:3000/api/signals', {
 
 ## Roadmap / Catatan
 
-- **Ganti dummy → feed asata.** `DUMMY_SIGNALS` hanya seed pertama; setelah ada POST
-  beneran, data berasal dari `.data/signals.json`.
+- **Sumber data = POST.** Store kosong sampai ada `POST /api/signals`; tidak ada dummy/seed.
 - **`MARKET_BIAS` masih konstanta global.** Bila ingin per-sinyal, tambah field di payload
   dan model data.
 - **Durabilitas.** Untuk multi-instance/serverless, migrasi storage ke SQLite atau DB

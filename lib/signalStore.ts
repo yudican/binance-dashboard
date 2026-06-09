@@ -1,12 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
-import {
-  DUMMY_SIGNALS,
-  timeAgo,
-  type Signal,
-  type SignalSide,
-  type SignalStatus,
-} from './signals'
+import { timeAgo, type Signal, type SignalSide, type SignalStatus } from './signals'
 
 const FILE = '/tmp/signals.json'
 const TTL_MS = 24 * 60 * 60 * 1000
@@ -52,12 +46,7 @@ async function readRaw(): Promise<StoredSignal[]> {
     const txt = await fs.readFile(FILE, 'utf8')
     const arr = JSON.parse(txt)
     return Array.isArray(arr) ? arr : []
-  } catch (e: any) {
-    if (e?.code === 'ENOENT') {
-      const seeded = seed()
-      await writeRaw(seeded)
-      return seeded
-    }
+  } catch {
     return []
   }
 }
@@ -70,16 +59,6 @@ function prune(rows: StoredSignal[]): StoredSignal[] {
 function toSignal(r: StoredSignal): Signal {
   const { createdAt, updatedAt, ...rest } = r
   return { ...rest, createdAgo: timeAgo(updatedAt || createdAt) }
-}
-
-/** Seed the store from the bundled dummy signals on first run. */
-function seed(): StoredSignal[] {
-  const now = Date.now()
-  return DUMMY_SIGNALS.map((s, i) => {
-    const { createdAgo, ...rest } = s
-    const ts = now - i * 7 * 60 * 1000
-    return { ...rest, id: deriveId(s.pair, s.side), createdAt: ts, updatedAt: ts }
-  })
 }
 
 export async function listSignals(): Promise<Signal[]> {
