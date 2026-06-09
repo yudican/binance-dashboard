@@ -8,7 +8,7 @@ import {
   type SignalStatus,
 } from './signals'
 
-const FILE = path.join(process.cwd(), '.data', 'signals.json')
+const FILE = '/tmp/signals.json'
 const TTL_MS = 24 * 60 * 60 * 1000
 
 /** On-disk shape: a Signal minus the derived `createdAgo`, plus timestamps. */
